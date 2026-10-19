@@ -6,6 +6,28 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 
+# Serverless / Vercel compatibility
+if os.environ.get("VERCEL"):
+    import shutil
+    TMP_DIR = Path("/tmp")
+    (TMP_DIR / "instance").mkdir(parents=True, exist_ok=True)
+    (TMP_DIR / "exports").mkdir(parents=True, exist_ok=True)
+    (TMP_DIR / "static" / "uploads").mkdir(parents=True, exist_ok=True)
+
+    TMP_DB = TMP_DIR / "instance" / "greenleaf.db"
+    SEED_DB = BASE_DIR / "instance" / "greenleaf.db"
+    if not TMP_DB.exists() and SEED_DB.exists():
+        shutil.copy2(SEED_DB, TMP_DB)
+
+    DEFAULT_DATABASE_URI = f"sqlite:///{TMP_DB}"
+    UPLOAD_FOLDER_DEFAULT = TMP_DIR / "static" / "uploads"
+    EXPORTS_FOLDER_DEFAULT = TMP_DIR / "exports"
+else:
+    DEFAULT_DATABASE_URI = f"sqlite:///{BASE_DIR / 'instance' / 'greenleaf.db'}"
+    UPLOAD_FOLDER_DEFAULT = BASE_DIR / "static" / "uploads"
+    EXPORTS_FOLDER_DEFAULT = BASE_DIR / "exports"
+
+
 class Config:
     """Base application configuration."""
     SECRET_KEY = os.environ.get("SECRET_KEY", "greenleaf-nexus-super-secret-key-2026")
@@ -30,8 +52,8 @@ class Config:
     EXPIRY_WARNING_DAYS = 15
     
     # Uploads & Exports
-    UPLOAD_FOLDER = BASE_DIR / "static" / "uploads"
-    EXPORTS_FOLDER = BASE_DIR / "exports"
+    UPLOAD_FOLDER = UPLOAD_FOLDER_DEFAULT
+    EXPORTS_FOLDER = EXPORTS_FOLDER_DEFAULT
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16 MB max upload
 
@@ -39,7 +61,7 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'greenleaf.db'}"
+        "DATABASE_URL", DEFAULT_DATABASE_URI
     )
 
 
@@ -54,7 +76,7 @@ class TestingConfig(Config):
 class ProductionConfig(Config):
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'greenleaf_prod.db'}"
+        "DATABASE_URL", DEFAULT_DATABASE_URI
     )
 
 

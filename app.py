@@ -34,7 +34,7 @@ def create_app(config_name=None):
     app.config.from_object(config.get(config_name, config["default"]))
 
     # Ensure required runtime folders exist
-    base_dir = Path(app.root_path)
+    base_dir = Path("/tmp") if os.environ.get("VERCEL") else Path(app.root_path)
     (base_dir / "instance").mkdir(parents=True, exist_ok=True)
     (base_dir / "exports").mkdir(parents=True, exist_ok=True)
     (base_dir / "static" / "uploads").mkdir(parents=True, exist_ok=True)
