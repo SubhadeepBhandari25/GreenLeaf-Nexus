@@ -31,10 +31,10 @@ venv/
 ENV/
 
 # Database files
-*.db
 *.sqlite
 *.sqlite3
-instance/
+instance/*
+!instance/greenleaf.db
 
 # Environment Variables
 .env

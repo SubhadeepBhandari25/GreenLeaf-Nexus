@@ -167,16 +167,43 @@ PRODUCTS_CATALOG = [
 ]
 
 
-def seed_database(num_sales=520, random_seed=42):
+def seed_database(num_sales=520, random_seed=42, app=None, drop_existing=False):
     random.seed(random_seed)
-    app = create_app("development")
 
-    with app.app_context():
+    if app is None:
+        try:
+            from flask import has_app_context, current_app
+            if has_app_context():
+                app = current_app._get_current_object()
+        except Exception:
+            pass
+
+    if app is None:
+        app = create_app("development")
+
+    from flask import has_app_context
+    created_ctx = False
+    if not has_app_context():
+        ctx = app.app_context()
+        ctx.push()
+        created_ctx = True
+
+    try:
         print("Initializing GreenLeaf Nexus Seed Routine...")
-        # Clean current database tables safely
-        db.drop_all()
+        db.session.remove()
+        if drop_existing:
+            try:
+                db.drop_all()
+            except Exception:
+                db.session.rollback()
+                for mdl in [AuditLog, InventoryMovement, SaleItem, Sale, Product, Supplier, User]:
+                    try:
+                        db.session.query(mdl).delete()
+                    except Exception:
+                        pass
+                db.session.commit()
         db.create_all()
-        print("Database schema successfully created.")
+        print("Database schema successfully verified.")
 
         # 1. Create Default Users (1 Admin, 2 Cashiers)
         admin = User(
@@ -495,7 +522,10 @@ def seed_database(num_sales=520, random_seed=42):
         print("  - Cashier1: cashier1 / cashier123")
         print("  - Cashier2: cashier2 / cashier123")
         print("========================================================\n")
+    finally:
+        if created_ctx and "ctx" in locals():
+            ctx.pop()
 
 
 if __name__ == "__main__":
-    seed_database()
+    seed_database(drop_existing=True)

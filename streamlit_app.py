@@ -158,10 +158,15 @@ def init_database_if_needed():
     """Initializes tables and seeds initial demo data if database is empty."""
     with flask_app.app_context():
         db.create_all()
-        prod_count = Product.query.count()
+        try:
+            prod_count = Product.query.count()
+        except Exception:
+            prod_count = 0
+            db.session.rollback()
+
         if prod_count == 0:
             with st.spinner("📦 First launch detected: Seeding realistic demo catalog, sales history, and inventory ledgers..."):
-                seed_database(num_sales=260, random_seed=42)
+                seed_database(num_sales=260, random_seed=42, app=flask_app, drop_existing=False)
             st.toast("✅ Demo database successfully populated!", icon="🌿")
 
 
@@ -1000,7 +1005,7 @@ def render_settings():
 
         if st.button("🚀 Reset & Re-Seed Demo Database", type="primary"):
             with st.spinner("Seeding database with realistic supermarket dataset..."):
-                seed_database(num_sales=300, random_seed=42)
+                seed_database(num_sales=300, random_seed=42, app=flask_app, drop_existing=True)
             st.success("✅ Demo database successfully re-seeded!")
             st.rerun()
 
