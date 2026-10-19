@@ -1,0 +1,805 @@
+{% extends "base.html" %}
+
+{% block title %}Instant 10-Min Store — {{ STORE_NAME }}{% endblock %}
+{% block page_title %}GreenLeaf Instant ⚡{% endblock %}
+{% block page_subtitle %}10-Minute Hyperlocal Quick-Commerce & Dark Store Delivery{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Blinkit Quick Commerce Styles */
+  .blinkit-topbar {
+    background: linear-gradient(135deg, #0b1d14 0%, #16865B 100%);
+    color: #ffffff;
+    border-radius: 14px;
+    padding: 1.1rem 1.4rem;
+    box-shadow: 0 8px 24px rgba(22, 134, 91, 0.2);
+    margin-bottom: 1.5rem;
+  }
+  .blinkit-pulse-badge {
+    background: #00E676;
+    color: #052615;
+    font-weight: 800;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 14px rgba(0, 230, 118, 0.6);
+    animation: blinkPulse 2s infinite;
+  }
+  @keyframes blinkPulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(0, 230, 118, 0.5); transform: scale(1); }
+    50% { box-shadow: 0 0 20px rgba(0, 230, 118, 0.9); transform: scale(1.02); }
+  }
+  .blinkit-cat-chip {
+    padding: 0.45rem 0.9rem;
+    border-radius: 30px;
+    border: 1px solid #D6E4DB;
+    background: #ffffff;
+    color: #202A24;
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+  .blinkit-cat-chip:hover, .blinkit-cat-chip.active {
+    background: #16865B;
+    color: #ffffff;
+    border-color: #16865B;
+    box-shadow: 0 4px 12px rgba(22, 134, 91, 0.25);
+  }
+  .blinkit-prod-card {
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .blinkit-prod-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+    border-color: #A3D9C3;
+  }
+  .blinkit-prod-img-wrap {
+    width: 100%;
+    height: 140px;
+    background: #F7FAF8;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 0.65rem;
+  }
+  .blinkit-prod-img {
+    max-height: 125px;
+    max-width: 90%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+  }
+  .blinkit-prod-card:hover .blinkit-prod-img {
+    transform: scale(1.06);
+  }
+  .blinkit-time-tag {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    background: rgba(11, 29, 20, 0.85);
+    backdrop-filter: blur(4px);
+    color: #00E676;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .blinkit-discount-tag {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #2563EB;
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+  /* Blinkit "+ ADD" / Stepper Button */
+  .btn-blinkit-add {
+    border: 1.5px solid #16865B;
+    background: #ffffff;
+    color: #16865B;
+    font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.95rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+  }
+  .btn-blinkit-add:hover {
+    background: #E8F5E9;
+    color: #0F5B3E;
+  }
+  .blinkit-stepper {
+    display: inline-flex;
+    align-items: center;
+    background: #16865B;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 700;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(22, 134, 91, 0.3);
+  }
+  .blinkit-stepper button {
+    background: none;
+    border: none;
+    color: #ffffff;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .blinkit-stepper button:hover {
+    background: rgba(0, 0, 0, 0.15);
+  }
+  .blinkit-stepper .stepper-count {
+    padding: 0 0.5rem;
+    font-size: 0.85rem;
+    min-width: 22px;
+    text-align: center;
+  }
+  /* Floating Bottom Cart Pill */
+  .blinkit-floating-cart {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    background: #116B49;
+    color: #ffffff;
+    padding: 0.75rem 1.4rem;
+    border-radius: 50px;
+    box-shadow: 0 12px 36px rgba(17, 107, 73, 0.45);
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    z-index: 1040;
+    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .blinkit-floating-cart.visible {
+    transform: translateX(-50%) translateY(0);
+  }
+  .blinkit-floating-cart .btn-view-cart {
+    background: #ffffff;
+    color: #116B49;
+    border: none;
+    padding: 0.4rem 1.1rem;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+  }
+  .blinkit-floating-cart .btn-view-cart:hover {
+    background: #E8F5E9;
+    transform: scale(1.04);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Blinkit Top Delivery Bar -->
+<div class="blinkit-topbar">
+  <div class="row align-items-center g-3">
+    <div class="col-12 col-md-5">
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <img src="{{ url_for('static', filename='img/greenleaf-nexus-logo.png') }}" alt="GreenLeaf Nexus Logo" style="width: 32px; height: 32px; object-fit: contain; border-radius: 8px; background: #ffffff; padding: 2px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+        <span class="blinkit-pulse-badge">
+          <i class="bi bi-lightning-charge-fill"></i> 10 MINS DELIVERY
+        </span>
+        <span class="badge bg-white text-dark small" style="font-size: 0.72rem;">Dark Store #04 Online</span>
+      </div>
+      <div class="d-flex align-items-center gap-1 text-white-50 small">
+        <i class="bi bi-geo-alt-fill text-warning"></i>
+        <span class="text-white fw-semibold">Delivering to:</span>
+        <span class="text-truncate text-white" id="activeDeliveryAddress">Indiranagar 100ft Rd, Bengaluru • Home</span>
+        <button class="btn btn-link text-warning p-0 text-decoration-none small ms-1" data-bs-toggle="modal" data-bs-target="#addressModal">
+          <u>Change</u>
+        </button>
+      </div>
+    </div>
+
+    <!-- Live Search Input -->
+    <div class="col-12 col-md-5">
+      <div class="position-relative">
+        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+        <input type="text" id="blinkitSearchInput" class="form-control rounded-pill ps-5 pe-4 py-2 border-0 shadow-sm" 
+               placeholder="Search 'bhujia', 'kurkure', 'lays', 'parle-g', 'maggi', 'samosa'..." value="{{ query }}">
+      </div>
+    </div>
+
+    <!-- Dark Store Picker Quick Link -->
+    <div class="col-12 col-md-2 text-md-end">
+      <a href="{{ url_for('express.picker_console') }}" class="btn btn-sm btn-outline-light rounded-pill px-3 fw-semibold">
+        <i class="bi bi-box-seam me-1"></i> Picker Hub
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Blinkit Offer Strip -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-4">
+    <div class="p-3 rounded-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #16865B 0%, #2ECC71 100%);">
+      <div>
+        <div class="fw-bold fs-6">⚡ 10-Minute Guarantee</div>
+        <div class="small opacity-90">Dark Store automated dispatch</div>
+      </div>
+      <i class="bi bi-stopwatch-fill fs-2 text-white-50"></i>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="p-3 rounded-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);">
+      <div>
+        <div class="fw-bold fs-6">🎉 FREE Delivery > ₹199</div>
+        <div class="small opacity-90">No minimum item surge fee</div>
+      </div>
+      <i class="bi bi-bicycle fs-2 text-white-50"></i>
+    </div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="p-3 rounded-3 text-white d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #D97706 0%, #FBBF24 100%);">
+      <div>
+        <div class="fw-bold fs-6">🥦 100% Farm Fresh</div>
+        <div class="small opacity-90">Daily morning direct harvests</div>
+      </div>
+      <i class="bi bi-flower1 fs-2 text-white-50"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Blinkit Horizontal Category Strip -->
+<div class="d-flex align-items-center gap-2 overflow-auto pb-3 mb-3" style="scrollbar-width: thin;">
+  <a href="{{ url_for('express.store') }}" class="blinkit-cat-chip {% if not selected_category or selected_category == 'All' %}active{% endif %}">
+    <span>🛒 All Categories</span>
+  </a>
+  {% for cat in categories %}
+  <a href="{{ url_for('express.store', category=cat.name) }}" class="blinkit-cat-chip {% if selected_category == cat.name %}active{% endif %}">
+    <span>{{ cat.name }}</span>
+    <span class="badge bg-light text-dark rounded-pill">{{ cat.count }}</span>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Indian Snacks & Namkeen Spotlight Quick Filters -->
+<div class="p-3 mb-4 rounded-3 shadow-sm" style="background: linear-gradient(135deg, #FFF7ED 0%, #FEF3C7 100%); border: 1px solid #FDE68A;">
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <span class="fs-5">🇮🇳</span>
+      <h6 class="fw-bold mb-0 text-dark">Indian Snacks & Namkeen Corner</h6>
+      <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.72rem;">26+ Desi Favorites</span>
+    </div>
+    <span class="text-success small fw-semibold"><i class="bi bi-lightning-fill"></i> In Stock for 10-Min Dispatch</span>
+  </div>
+  <div class="d-flex align-items-center gap-2 overflow-auto py-1" style="scrollbar-width: none;">
+    <button type="button" class="btn btn-sm btn-dark rounded-pill px-3 fw-semibold snack-quick-filter active" onclick="filterBySnackTag('all', this)">
+      ✨ All Items
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold snack-quick-filter" onclick="filterBySnackTag('indian', this)">
+      🇮🇳 All Indian Snacks
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 fw-semibold snack-quick-filter text-dark" onclick="filterBySnackTag('bhujia', this)">
+      🥨 Bhujia & Namkeen
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold snack-quick-filter" onclick="filterBySnackTag('chips', this)">
+      🥔 Masala Chips & Kurkure
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-semibold snack-quick-filter" onclick="filterBySnackTag('biscuit', this)">
+      🍪 Chai Biscuits & Cookies
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-semibold snack-quick-filter" onclick="filterBySnackTag('sweet', this)">
+      🍬 Gulab Jamun & Mithai
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold snack-quick-filter text-dark" onclick="filterBySnackTag('quick', this)">
+      🍜 Maggi, Papad & Samosas
+    </button>
+  </div>
+</div>
+
+<!-- Product Grid -->
+<div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-3 mb-5" id="blinkitProductGrid">
+  {% for p in products %}
+  <div class="col product-card-col" data-product-id="{{ p.product_id }}" data-category="{{ p.category }}" data-name="{{ p.name|lower }}">
+    <div class="blinkit-prod-card shadow-sm">
+      <div>
+        <div class="blinkit-prod-img-wrap">
+          <span class="blinkit-time-tag"><i class="bi bi-lightning-fill"></i> 10 MINS</span>
+          {% if loop.index % 3 == 0 %}
+            <span class="blinkit-discount-tag">15% OFF</span>
+          {% endif %}
+          {% if p.image_path %}
+            <img src="{{ p.image_path }}" alt="{{ p.name }}" class="blinkit-prod-img" loading="lazy" onerror="this.onerror=null; this.src='/static/img/product-placeholder.png';">
+          {% else %}
+            <img src="/static/img/product-placeholder.png" alt="{{ p.name }}" class="blinkit-prod-img">
+          {% endif %}
+        </div>
+
+        <div class="text-muted" style="font-size: 0.72rem;">{{ p.category }}</div>
+        <h6 class="fw-bold text-dark text-truncate mb-1" title="{{ p.name }}" style="font-size: 0.88rem;">{{ p.name }}</h6>
+        <div class="text-secondary small mb-2" style="font-size: 0.75rem;">1 unit • In Stock: {{ p.stock_qty }}</div>
+      </div>
+
+      <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-1">
+        <div>
+          <div class="fw-bold text-dark fs-6">{{ p.unit_price|currency }}</div>
+          {% if loop.index % 3 == 0 %}
+            <div class="text-muted text-decoration-line-through" style="font-size: 0.7rem;">₹{{ (p.unit_price * 1.18)|round(0)|int }}</div>
+          {% endif %}
+        </div>
+
+        <!-- Add Button / Stepper Container -->
+        <div class="stepper-container" id="stepperContainer-{{ p.product_id }}">
+          {% if p.stock_qty > 0 %}
+            <button type="button" class="btn-blinkit-add" onclick="blinkitAddOne({{ p.product_id }}, '{{ p.name|replace('\'', '\\\'') }}', {{ p.unit_price }}, {{ p.stock_qty }}, '{{ p.image_path or '' }}')">
+              + ADD
+            </button>
+          {% else %}
+            <button type="button" class="btn btn-sm btn-light text-muted border" disabled style="font-size: 0.75rem;">
+              Sold Out
+            </button>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center py-5">
+    <i class="bi bi-cart-x fs-1 text-muted d-block mb-3"></i>
+    <h5>No products found matching your search.</h5>
+    <p class="text-muted small">Try searching for other everyday essentials or clear filters.</p>
+    <a href="{{ url_for('express.store') }}" class="btn btn-outline-green btn-sm rounded-pill mt-2">View All Items</a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Blinkit Floating Bottom Cart Pill -->
+<div id="blinkitCartPill" class="blinkit-floating-cart">
+  <div class="d-flex align-items-center gap-3">
+    <div class="rounded-circle bg-white text-success d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.1rem;">
+      <i class="bi bi-bag-check-fill"></i>
+    </div>
+    <div>
+      <div class="fw-bold fs-6"><span id="cartPillCount">0</span> Items • <span id="cartPillTotal">₹0.00</span></div>
+      <div class="small text-white-50" style="font-size: 0.75rem;">⚡ 10-Min Express Dark Store Dispatch</div>
+    </div>
+  </div>
+  <button type="button" class="btn-view-cart" data-bs-toggle="offcanvas" data-bs-target="#blinkitCartDrawer">
+    <span>View Cart</span>
+    <i class="bi bi-arrow-right"></i>
+  </button>
+</div>
+
+<!-- Blinkit Slide-Up / Offcanvas Cart Drawer -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="blinkitCartDrawer" aria-labelledby="blinkitCartDrawerLabel" style="width: 420px; max-width: 100vw;">
+  <div class="offcanvas-header bg-light border-bottom">
+    <div>
+      <h5 class="offcanvas-title fw-bold mb-0" id="blinkitCartDrawerLabel">
+        <i class="bi bi-lightning-charge-fill text-warning"></i> My Express Cart
+      </h5>
+      <span class="text-muted small" id="drawerDeliveryBadge">Delivery in 10-12 Mins to Indiranagar</span>
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+
+  <div class="offcanvas-body d-flex flex-column p-0">
+    <!-- Free Delivery Meter -->
+    <div class="p-3 bg-light-subtle border-bottom">
+      <div class="d-flex justify-content-between small fw-semibold mb-1">
+        <span id="freeDeliveryMsg">Add ₹199 more for FREE Delivery</span>
+        <span class="text-success"><i class="bi bi-shield-check"></i> 100% Guaranteed</span>
+      </div>
+      <div class="progress" style="height: 6px;">
+        <div id="freeDeliveryBar" class="progress-bar bg-success" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <!-- Cart Item List -->
+    <div class="flex-grow-1 overflow-auto p-3" id="cartItemsList">
+      <!-- Items dynamically injected by JavaScript -->
+    </div>
+
+    <!-- Bill Details & Place Order -->
+    <div class="border-top p-3 bg-white shadow-lg">
+      <div class="mb-3">
+        <label class="form-label small fw-bold mb-1">Delivery Address</label>
+        <div class="d-flex align-items-center justify-content-between p-2 rounded border bg-light">
+          <div class="small text-truncate" id="cartAddressText">Flat 402, Green Glen Layout, Indiranagar</div>
+          <button class="btn btn-sm btn-link text-success p-0 fw-bold" data-bs-toggle="modal" data-bs-target="#addressModal">Change</button>
+        </div>
+      </div>
+
+      <!-- Tip Delivery Partner -->
+      <div class="mb-3">
+        <label class="form-label small fw-bold mb-1">Tip your Delivery Hero</label>
+        <div class="btn-group w-100" role="group">
+          <input type="radio" class="btn-check" name="riderTip" id="tip0" value="0" checked onchange="updateBillSummary()">
+          <label class="btn btn-sm btn-outline-secondary" for="tip0">₹0</label>
+
+          <input type="radio" class="btn-check" name="riderTip" id="tip20" value="20" onchange="updateBillSummary()">
+          <label class="btn btn-sm btn-outline-secondary" for="tip20">₹20</label>
+
+          <input type="radio" class="btn-check" name="riderTip" id="tip30" value="30" onchange="updateBillSummary()">
+          <label class="btn btn-sm btn-outline-secondary" for="tip30">₹30</label>
+
+          <input type="radio" class="btn-check" name="riderTip" id="tip50" value="50" onchange="updateBillSummary()">
+          <label class="btn btn-sm btn-outline-secondary" for="tip50">₹50</label>
+        </div>
+      </div>
+
+      <!-- Bill Breakdown -->
+      <div class="small mb-3">
+        <div class="d-flex justify-content-between text-muted mb-1">
+          <span>Items Total</span>
+          <span id="billItemTotal">₹0.00</span>
+        </div>
+        <div class="d-flex justify-content-between text-muted mb-1">
+          <span>Delivery Charge (⚡ 10 mins)</span>
+          <span id="billDeliveryFee" class="text-success fw-bold">FREE</span>
+        </div>
+        <div class="d-flex justify-content-between text-muted mb-1">
+          <span>Dark Store Handling Fee</span>
+          <span>₹2.00</span>
+        </div>
+        <div class="d-flex justify-content-between text-muted mb-1" id="tipRow" style="display: none;">
+          <span>Rider Tip</span>
+          <span id="billTip">₹0.00</span>
+        </div>
+        <div class="d-flex justify-content-between fw-bold fs-6 border-top pt-2 mt-2">
+          <span>Grand Total</span>
+          <span id="billGrandTotal" class="text-success">₹0.00</span>
+        </div>
+        <div class="p-2 mt-2 rounded bg-success-subtle text-success small fw-semibold text-center" id="billSavingsBanner">
+          🎉 You saved ₹42.00 on this order!
+        </div>
+      </div>
+
+      <!-- Checkout Button -->
+      <button type="button" class="btn btn-green w-100 py-2 fw-bold d-flex align-items-center justify-content-center gap-2" id="btnPlaceExpressOrder" onclick="submitExpressOrder()">
+        <span>Place Express Order (⚡ 10 MINS)</span>
+        <i class="bi bi-arrow-right"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Address Switch Modal -->
+<div class="modal fade" id="addressModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom">
+        <h6 class="modal-title fw-bold"><i class="bi bi-geo-alt-fill text-success me-1"></i> Choose Delivery Address</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="list-group list-group-radio">
+          <label class="list-group-item d-flex gap-3 p-3">
+            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Indiranagar 100ft Rd, Bengaluru • Home" checked>
+            <div>
+              <strong class="d-block">Home</strong>
+              <small class="text-muted">Flat 402, Green Glen Layout, Indiranagar, Bengaluru - 560038</small>
+            </div>
+          </label>
+          <label class="list-group-item d-flex gap-3 p-3">
+            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Koramangala 4th Block, Bengaluru • Office">
+            <div>
+              <strong class="d-block">Office</strong>
+              <small class="text-muted">Tech Park Tower B, 3rd Floor, Koramangala, Bengaluru - 560034</small>
+            </div>
+          </label>
+          <label class="list-group-item d-flex gap-3 p-3">
+            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Whitefield ITPL Main Rd, Bengaluru • Other">
+            <div>
+              <strong class="d-block">GreenLeaf Dark Store Pickup Hub #04</strong>
+              <small class="text-muted">Direct Express Counter Pickup (Zero Delivery Fee)</small>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-green btn-sm" data-bs-dismiss="modal" onclick="applySelectedAddress()">Save Address</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Blinkit Cart State Management
+  let blinkitCart = {}; // { productId: { name, price, qty, maxStock, image } }
+
+  function blinkitAddOne(id, name, price, maxStock, image) {
+    if (!blinkitCart[id]) {
+      blinkitCart[id] = { id, name, price: Number(price), qty: 1, maxStock: Number(maxStock), image };
+    } else {
+      if (blinkitCart[id].qty < maxStock) {
+        blinkitCart[id].qty += 1;
+      }
+    }
+    renderCardStepper(id);
+    updateCartUI();
+  }
+
+  function blinkitMinusOne(id) {
+    if (blinkitCart[id]) {
+      blinkitCart[id].qty -= 1;
+      if (blinkitCart[id].qty <= 0) {
+        delete blinkitCart[id];
+      }
+    }
+    renderCardStepper(id);
+    updateCartUI();
+  }
+
+  function renderCardStepper(id) {
+    const container = document.getElementById(`stepperContainer-${id}`);
+    if (!container) return;
+
+    const item = blinkitCart[id];
+    if (item && item.qty > 0) {
+      container.innerHTML = `
+        <div class="blinkit-stepper">
+          <button type="button" onclick="blinkitMinusOne(${id})"><i class="bi bi-dash"></i></button>
+          <span class="stepper-count">${item.qty}</span>
+          <button type="button" onclick="blinkitAddOne(${id}, '${item.name.replace(/'/g, "\\'")}', ${item.price}, ${item.maxStock}, '${item.image}')"><i class="bi bi-plus"></i></button>
+        </div>
+      `;
+    } else {
+      const card = document.querySelector(`[data-product-id="${id}"]`);
+      const stock = card ? parseInt(card.dataset.stock || 10) : 10;
+      container.innerHTML = `
+        <button type="button" class="btn-blinkit-add" onclick="blinkitAddOne(${id}, '', 0, ${stock}, '')">
+          + ADD
+        </button>
+      `;
+    }
+  }
+
+  function updateCartUI() {
+    const items = Object.values(blinkitCart);
+    const count = items.reduce((acc, i) => acc + i.qty, 0);
+    const subtotal = items.reduce((acc, i) => acc + (i.price * i.qty), 0);
+
+    // Update Bottom Pill
+    const pill = document.getElementById('blinkitCartPill');
+    const pillCount = document.getElementById('cartPillCount');
+    const pillTotal = document.getElementById('cartPillTotal');
+
+    if (count > 0) {
+      pillCount.textContent = count;
+      pillTotal.textContent = `₹${subtotal.toFixed(2)}`;
+      pill.classList.add('visible');
+    } else {
+      pill.classList.remove('visible');
+    }
+
+    // Update Drawer Item List
+    const listEl = document.getElementById('cartItemsList');
+    if (items.length === 0) {
+      listEl.innerHTML = `
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-bag-x fs-1 d-block mb-2"></i>
+          <h6>Your cart is empty</h6>
+          <p class="small">Add fresh produce and daily essentials for 10-minute delivery!</p>
+        </div>
+      `;
+    } else {
+      listEl.innerHTML = items.map(item => `
+        <div class="d-flex align-items-center justify-content-between p-2 mb-2 rounded bg-light border">
+          <div class="d-flex align-items-center gap-2 overflow-hidden">
+            <img src="${item.image || '/static/img/product-placeholder.png'}" class="rounded" style="width: 44px; height: 44px; object-fit: contain; background: #fff;" onerror="this.src='/static/img/product-placeholder.png'">
+            <div class="overflow-hidden">
+              <div class="fw-bold small text-truncate" title="${item.name}">${item.name}</div>
+              <div class="text-success small fw-semibold">₹${item.price.toFixed(2)}</div>
+            </div>
+          </div>
+          <div class="blinkit-stepper ms-2">
+            <button type="button" onclick="blinkitMinusOne(${item.id})"><i class="bi bi-dash"></i></button>
+            <span class="stepper-count">${item.qty}</span>
+            <button type="button" onclick="blinkitAddOne(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.price}, ${item.maxStock}, '${item.image}')"><i class="bi bi-plus"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    updateBillSummary();
+  }
+
+  function updateBillSummary() {
+    const items = Object.values(blinkitCart);
+    const subtotal = items.reduce((acc, i) => acc + (i.price * i.qty), 0);
+    const deliveryFee = (subtotal >= 199 || subtotal === 0) ? 0.0 : 15.0;
+    const handlingFee = subtotal > 0 ? 2.0 : 0.0;
+
+    const tipRadio = document.querySelector('input[name="riderTip"]:checked');
+    const tipAmount = tipRadio ? parseFloat(tipRadio.value) : 0.0;
+
+    const grandTotal = subtotal + deliveryFee + handlingFee + tipAmount;
+
+    document.getElementById('billItemTotal').textContent = `₹${subtotal.toFixed(2)}`;
+    document.getElementById('billDeliveryFee').textContent = deliveryFee === 0 ? 'FREE' : `₹${deliveryFee.toFixed(2)}`;
+    document.getElementById('billGrandTotal').textContent = `₹${grandTotal.toFixed(2)}`;
+
+    const tipRow = document.getElementById('tipRow');
+    if (tipAmount > 0) {
+      tipRow.style.display = 'flex';
+      document.getElementById('billTip').textContent = `₹${tipAmount.toFixed(2)}`;
+    } else {
+      tipRow.style.display = 'none';
+    }
+
+    // Free delivery progress
+    const freeDeliveryMsg = document.getElementById('freeDeliveryMsg');
+    const freeDeliveryBar = document.getElementById('freeDeliveryBar');
+    if (subtotal >= 199) {
+      freeDeliveryMsg.innerHTML = '🎉 <strong>FREE Delivery unlocked!</strong>';
+      freeDeliveryBar.style.width = '100%';
+    } else {
+      const needed = (199 - subtotal).toFixed(0);
+      freeDeliveryMsg.innerHTML = `Add <strong>₹${needed}</strong> more for FREE Delivery`;
+      freeDeliveryBar.style.width = `${Math.min(100, (subtotal / 199) * 100)}%`;
+    }
+
+    const checkoutBtn = document.getElementById('btnPlaceExpressOrder');
+    if (subtotal === 0) {
+      checkoutBtn.disabled = true;
+    } else {
+      checkoutBtn.disabled = false;
+    }
+  }
+
+  function applySelectedAddress() {
+    const selected = document.querySelector('input[name="addressOpt"]:checked');
+    if (selected) {
+      document.getElementById('activeDeliveryAddress').textContent = selected.value;
+      document.getElementById('cartAddressText').textContent = selected.value;
+    }
+  }
+
+  // Indian Snacks Corner Fast Filtering
+  const INDIAN_SNACK_KEYWORDS = [
+    'bhujia', 'namkeen', 'kurkure', 'lay\'s', 'bingo', 'parle', 'britannia', 
+    'haldiram', 'soan papdi', 'gulab jamun', 'maggi', 'lijjat', 'papad', 
+    'makhana', 'balaji', 'samosa', 'bakarwadi', 'bourbon', 'dark fantasy', 
+    'marie gold', 'good day', 'silk', 'twisteez', 'tedhe medhe', 'achaari', 'moong dal'
+  ];
+
+  function filterBySnackTag(tag, btnElement) {
+    document.querySelectorAll('.snack-quick-filter').forEach(btn => {
+      btn.classList.remove('active', 'btn-dark', 'btn-danger', 'btn-warning', 'btn-primary', 'btn-success', 'btn-secondary');
+      if (!btn.classList.contains('btn-outline-danger') && !btn.classList.contains('btn-outline-warning') && !btn.classList.contains('btn-outline-primary') && !btn.classList.contains('btn-outline-success') && !btn.classList.contains('btn-outline-secondary')) {
+        btn.classList.add('btn-outline-dark');
+      }
+    });
+
+    if (btnElement) {
+      btnElement.classList.add('active');
+    }
+
+    const cols = document.querySelectorAll('.product-card-col');
+    let matchedCount = 0;
+
+    cols.forEach(col => {
+      const name = (col.getAttribute('data-name') || '').toLowerCase();
+      const cat = (col.getAttribute('data-category') || '').toLowerCase();
+
+      let show = false;
+      if (tag === 'all') {
+        show = true;
+      } else if (tag === 'indian') {
+        show = INDIAN_SNACK_KEYWORDS.some(k => name.includes(k));
+      } else if (tag === 'bhujia') {
+        show = ['bhujia', 'namkeen', 'sev', 'moong dal', 'mixture', 'navrattan', 'khatta'].some(k => name.includes(k));
+      } else if (tag === 'chips') {
+        show = ['chips', 'kurkure', 'lay\'s', 'bingo', 'twisteez', 'wafers', 'masti', 'tedhe'].some(k => name.includes(k));
+      } else if (tag === 'biscuit') {
+        show = ['biscuit', 'cookies', 'parle', 'britannia', 'bourbon', 'fantasy', 'rusk', 'marie', 'good day'].some(k => name.includes(k));
+      } else if (tag === 'sweet') {
+        show = ['jamun', 'papdi', 'sweet', 'chocolate', 'silk', 'rasgulla', 'mithai'].some(k => name.includes(k));
+      } else if (tag === 'quick') {
+        show = ['maggi', 'noodles', 'papad', 'makhana', 'samosa', 'bakarwadi'].some(k => name.includes(k));
+      }
+
+      if (show) {
+        col.style.display = 'block';
+        matchedCount++;
+      } else {
+        col.style.display = 'none';
+      }
+    });
+  }
+
+  // Live Instant Search Filter
+  document.getElementById('blinkitSearchInput').addEventListener('input', function(e) {
+    const q = e.target.value.toLowerCase().trim();
+    const cols = document.querySelectorAll('.product-card-col');
+    cols.forEach(col => {
+      const name = col.getAttribute('data-name') || '';
+      const cat = col.getAttribute('data-category') || '';
+      if (!q || name.includes(q) || cat.toLowerCase().includes(q)) {
+        col.style.display = 'block';
+      } else {
+        col.style.display = 'none';
+      }
+    });
+  });
+
+  // Submit Express Order to Server
+  async function submitExpressOrder() {
+    const items = Object.values(blinkitCart);
+    if (items.length === 0) return;
+
+    const checkoutBtn = document.getElementById('btnPlaceExpressOrder');
+    checkoutBtn.disabled = true;
+    checkoutBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> Transmitting to Dark Store...`;
+
+    const tipRadio = document.querySelector('input[name="riderTip"]:checked');
+    const tipAmount = tipRadio ? parseFloat(tipRadio.value) : 0.0;
+    const address = document.getElementById('cartAddressText').textContent;
+
+    const payload = {
+      items: items.map(i => ({ product_id: i.id, quantity: i.qty })),
+      address: address,
+      customer_name: 'Valued Shopper',
+      customer_phone: '9845012345',
+      payment_method: 'UPI Instant',
+      tip_amount: tipAmount
+    };
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    try {
+      const res = await fetch('{{ url_for("express.express_checkout") }}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = data.redirect_url;
+      } else {
+        alert(data.error || 'Failed to place express order. Please check stock availability.');
+        checkoutBtn.disabled = false;
+        checkoutBtn.innerHTML = `Place Express Order (⚡ 10 MINS) <i class="bi bi-arrow-right ms-2"></i>`;
+      }
+    } catch (err) {
+      alert('Network error placing express order: ' + err.message);
+      checkoutBtn.disabled = false;
+      checkoutBtn.innerHTML = `Place Express Order (⚡ 10 MINS) <i class="bi bi-arrow-right ms-2"></i>`;
+    }
+  }
+</script>
+{% endblock %}

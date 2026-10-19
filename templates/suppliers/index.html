@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Suppliers — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Supplier Directory{% endblock %}
+{% block page_subtitle %}Manage wholesale vendor contacts and associated grocery inventory lines{% endblock %}
+
+{% block content %}
+<!-- Top Action Bar -->
+<div class="card-custom p-3 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <form method="GET" action="{{ url_for('suppliers.index') }}" class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 360px;">
+      <div class="input-group input-group-sm">
+        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" name="search" class="form-control form-control-custom border-start-0" placeholder="Search supplier name, phone, or email..." value="{{ search }}">
+      </div>
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Search</button>
+      {% if search %}
+        <a href="{{ url_for('suppliers.index') }}" class="btn btn-sm btn-link text-muted">Reset</a>
+      {% endif %}
+    </form>
+
+    <a href="{{ url_for('suppliers.create') }}" class="btn btn-sm btn-green">
+      <i class="bi bi-plus-lg me-1"></i> Add Supplier
+    </a>
+  </div>
+</div>
+
+<!-- Suppliers Table -->
+<div class="card-custom p-0 overflow-hidden mb-4">
+  <div class="table-responsive">
+    <table class="table-custom mb-0">
+      <thead>
+        <tr>
+          <th>Supplier Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Address</th>
+          <th class="text-center">Products Supplied</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in suppliers %}
+        <tr>
+          <td>
+            <a href="{{ url_for('suppliers.details', supplier_id=s.supplier_id) }}" class="fw-semibold text-dark text-decoration-none">
+              <i class="bi bi-building me-1 text-secondary"></i> {{ s.name }}
+            </a>
+          </td>
+          <td>{{ s.phone or '—' }}</td>
+          <td>
+            {% if s.email %}
+              <a href="mailto:{{ s.email }}" class="text-decoration-none text-muted"><i class="bi bi-envelope me-1"></i>{{ s.email }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="small text-muted text-truncate" style="max-width: 200px;">{{ s.address or '—' }}</td>
+          <td class="text-center">
+            <span class="badge bg-light text-dark border">{{ s.products.count() }} products</span>
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{{ url_for('suppliers.details', supplier_id=s.supplier_id) }}" class="btn btn-sm btn-light border py-1 px-2" title="View Products">
+                <i class="bi bi-eye"></i>
+              </a>
+              <a href="{{ url_for('suppliers.edit', supplier_id=s.supplier_id) }}" class="btn btn-sm btn-light border py-1 px-2" title="Edit Supplier">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-5">
+            <i class="bi bi-truck fs-2 d-block mb-2"></i>
+            No suppliers found in directory.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

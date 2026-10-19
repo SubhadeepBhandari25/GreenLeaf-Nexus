@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Dark Store Picker Console — {{ STORE_NAME }}{% endblock %}
+{% block page_title %}Dark Store Fulfillment & Dispatch 🏬{% endblock %}
+{% block page_subtitle %}2-Minute Packing SLA Console for 10-Minute Express Quick-Commerce{% endblock %}
+
+{% block extra_head %}
+<style>
+  .sla-timer-badge {
+    font-family: 'Inter', monospace;
+    font-weight: 800;
+    font-size: 0.95rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+  .sla-safe {
+    background: #E8F5E9;
+    color: #16865B;
+    border: 1px solid #A3D9C3;
+  }
+  .sla-warning {
+    background: #FFFBEB;
+    color: #B45309;
+    border: 1px solid #FCD34D;
+    animation: slaWarningPulse 1.5s infinite;
+  }
+  .sla-danger {
+    background: #FEF2F2;
+    color: #DC2626;
+    border: 1px solid #FCA5A5;
+    animation: slaDangerPulse 0.8s infinite;
+  }
+  @keyframes slaWarningPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  @keyframes slaDangerPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  .order-card-picker {
+    border-radius: 14px;
+    border: 1px solid #E2E8F0;
+    background: #ffffff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+  .order-card-picker:hover {
+    border-color: #16865B;
+    box-shadow: 0 8px 24px rgba(22, 134, 91, 0.12);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Top Metrics Row -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-title">Packing SLA Target</span>
+        <div class="kpi-icon-wrapper kpi-icon-green"><i class="bi bi-stopwatch"></i></div>
+      </div>
+      <div class="kpi-value">02:00 <small class="fs-6 text-muted">mins</small></div>
+      <span class="text-success small fw-semibold"><i class="bi bi-lightning-fill"></i> 10-Min SLA Standard</span>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-title">Active Dark Store</span>
+        <div class="kpi-icon-wrapper kpi-icon-blue"><i class="bi bi-building"></i></div>
+      </div>
+      <div class="kpi-value fs-5 text-truncate">{{ dark_store.name }}</div>
+      <span class="text-muted small">Hub Area: {{ dark_store.area }}</span>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-title">Station Pickers</span>
+        <div class="kpi-icon-wrapper kpi-icon-purple"><i class="bi bi-people"></i></div>
+      </div>
+      <div class="kpi-value">{{ packers|length }} On-Duty</div>
+      <span class="text-success small fw-semibold"><i class="bi bi-check-circle"></i> 100% Station Coverage</span>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <span class="kpi-title">Fleet Dispatch</span>
+        <div class="kpi-icon-wrapper kpi-icon-orange"><i class="bi bi-bicycle"></i></div>
+      </div>
+      <div class="kpi-value">{{ dark_store.active_riders }} Riders</div>
+      <span class="text-muted small">SLA Fulfillment: {{ dark_store.fulfillment_rate }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- Picker Queue Section -->
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h4 class="fs-5 fw-bold mb-0">Incoming Orders Packing Queue</h4>
+    <p class="text-muted small mb-0">Pick items according to shelf aisle coordinates and scan to pack</p>
+  </div>
+  <a href="{{ url_for('express.store') }}" class="btn btn-sm btn-outline-green">
+    <i class="bi bi-cart3 me-1"></i> Open Storefront
+  </a>
+</div>
+
+<!-- Order Cards Grid -->
+<div class="row g-4">
+  {% for ord in orders %}
+  <div class="col-12 col-md-6 col-xl-4" id="orderCardPicker-{{ ord.sale_id }}">
+    <div class="order-card-picker h-100 p-3 d-flex flex-column justify-content-between">
+      <div>
+        <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
+          <div>
+            <span class="fw-bold text-dark font-monospace">#{{ ord.invoice_number }}</span>
+            <div class="text-muted small" style="font-size: 0.72rem;">{{ ord.sale_time }} • {{ ord.customer_name or 'Express Customer' }}</div>
+          </div>
+          {% if 'DISPATCHED' in (ord.notes or '') %}
+            <span class="badge bg-success-subtle text-success border border-success fw-bold">DISPATCHED</span>
+          {% else %}
+            <span class="sla-timer-badge sla-safe" id="slaTimer-{{ ord.sale_id }}">01:42</span>
+          {% endif %}
+        </div>
+
+        <!-- Items Checklist -->
+        <div class="mb-3">
+          <div class="text-muted small fw-semibold mb-2">Items to Pick ({{ ord.items|length }} items):</div>
+          <div class="d-flex flex-column gap-2">
+            {% for item in ord.items %}
+            <div class="d-flex align-items-center justify-content-between p-2 rounded bg-light" style="font-size: 0.8rem;">
+              <div class="d-flex align-items-center gap-2 overflow-hidden">
+                <input class="form-check-input flex-shrink-0" type="checkbox" id="chk-{{ ord.sale_id }}-{{ loop.index }}" checked>
+                <label class="form-check-label text-truncate fw-semibold" for="chk-{{ ord.sale_id }}-{{ loop.index }}" title="{{ item.product.name if item.product else 'Item' }}">
+                  {{ item.product.name if item.product else 'Item' }}
+                </label>
+              </div>
+              <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <span class="badge bg-white text-dark border">x{{ item.quantity }}</span>
+                <span class="badge bg-info-subtle text-info" style="font-size: 0.68rem;">Aisle {{ (loop.index % 3) + 1 }}-B</span>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer -->
+      <div class="pt-2 border-top">
+        <div class="d-flex align-items-center justify-content-between mb-2 small text-muted">
+          <span>Total: <strong class="text-dark">{{ ord.total_amount|currency }}</strong></span>
+          <span>Station: <strong class="text-dark">Bay #02</strong></span>
+        </div>
+
+        {% if 'DISPATCHED' in (ord.notes or '') %}
+          <a href="{{ url_for('express.track_order', invoice_number=ord.invoice_number) }}" class="btn btn-sm btn-outline-secondary w-100">
+            <i class="bi bi-geo-alt me-1"></i> Track Live Delivery
+          </a>
+        {% else %}
+          <button type="button" class="btn btn-green btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-2" id="btnDispatch-{{ ord.sale_id }}" onclick="dispatchOrder({{ ord.sale_id }}, '{{ ord.invoice_number }}')">
+            <i class="bi bi-box-seam-fill"></i>
+            <span>Pack & Handover to Rider</span>
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center py-5">
+    <i class="bi bi-inbox fs-1 text-muted d-block mb-3"></i>
+    <h5>No pending orders in Dark Store queue.</h5>
+    <p class="text-muted small">Place a sample order from the 10-minute storefront to test packing workflows.</p>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Simulated SLA Timers ticking down
+  setInterval(() => {
+    document.querySelectorAll('[id^="slaTimer-"]').forEach(timer => {
+      let parts = timer.textContent.split(':');
+      let mins = parseInt(parts[0], 10);
+      let secs = parseInt(parts[1], 10);
+      let total = mins * 60 + secs;
+
+      if (total > 0) {
+        total--;
+        let m = Math.floor(total / 60);
+        let s = total % 60;
+        timer.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+        timer.classList.remove('sla-safe', 'sla-warning', 'sla-danger');
+        if (total > 60) {
+          timer.classList.add('sla-safe');
+        } else if (total > 20) {
+          timer.classList.add('sla-warning');
+        } else {
+          timer.classList.add('sla-danger');
+        }
+      }
+    });
+  }, 1000);
+
+  async function dispatchOrder(saleId, invoiceNum) {
+    const btn = document.getElementById(`btnDispatch-${saleId}`);
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Dispatching...`;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    try {
+      const res = await fetch(`/express/api/picker/dispatch/${saleId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ packer: 'Rajesh Kumar', rider: 'Vikram Singh' })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        btn.className = 'btn btn-outline-success btn-sm w-100 fw-bold';
+        btn.innerHTML = `<i class="bi bi-check-circle-fill me-1"></i> Dispatched to Rider!`;
+        const timer = document.getElementById(`slaTimer-${saleId}`);
+        if (timer) {
+          timer.className = 'badge bg-success-subtle text-success border border-success fw-bold';
+          timer.textContent = 'DISPATCHED';
+        }
+      } else {
+        alert(data.error || 'Dispatch failed');
+        btn.disabled = false;
+        btn.innerHTML = `Pack & Handover to Rider`;
+      }
+    } catch (e) {
+      alert('Network error: ' + e.message);
+      btn.disabled = false;
+      btn.innerHTML = `Pack & Handover to Rider`;
+    }
+  }
+</script>
+{% endblock %}

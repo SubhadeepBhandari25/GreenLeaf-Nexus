@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit Product{% else %}New Product{% endif %} — GreenLeaf Nexus{% endblock %}
+{% block page_title %}{% if is_edit %}Edit Product: {{ product.name }}{% else %}Add New Product{% endif %}{% endblock %}
+{% block page_subtitle %}Configure product specifications, pricing, stock rules, and suppliers{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-8">
+    <div class="card-custom">
+      <form method="POST" action="{% if is_edit %}{{ url_for('products.edit', product_id=product.product_id) }}{% else %}{{ url_for('products.create') }}{% endif %}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="row g-3">
+          <!-- Basic Info -->
+          <div class="col-12">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">1. Identity & Classification</h5>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="sku" class="form-label small fw-semibold">SKU (Stock Keeping Unit) <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-custom font-monospace" id="sku" name="sku" value="{{ product.sku or '' }}" placeholder="e.g. FRU-APL-001" required>
+            <div class="form-text">Unique alphanumeric identifier for barcode/inventory.</div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="barcode" class="form-label small fw-semibold">Barcode / UPC (Optional)</label>
+            <div class="input-group">
+              <input type="text" class="form-control form-control-custom font-monospace" id="barcode" name="barcode" value="{{ product.barcode or '' }}" placeholder="e.g. 3017620422003">
+              <button type="button" id="btnLookupOff" class="btn btn-outline-success" title="Lookup product info and photo in Open Food Facts database">
+                <i class="bi bi-cloud-arrow-down me-1"></i> Food DB
+              </button>
+            </div>
+            <div class="form-text" id="barcodeLookupStatus">Enter barcode to auto-fill details and photo from Open Food Facts API.</div>
+          </div>
+
+          <div class="col-12 col-md-8">
+            <label for="name" class="form-label small fw-semibold">Product Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control form-control-custom" id="name" name="name" value="{{ product.name or '' }}" placeholder="e.g. Royal Gala Apples (1kg)" required>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="category" class="form-label small fw-semibold">Category <span class="text-danger">*</span></label>
+            <select class="form-select form-control-custom" id="category" name="category" required>
+              <option value="" disabled {% if not product.category %}selected{% endif %}>Select category...</option>
+              {% for cat in ['Fruits', 'Vegetables', 'Dairy', 'Bakery', 'Grains and Pulses', 'Beverages', 'Snacks', 'Household Essentials'] %}
+                <option value="{{ cat }}" {% if product.category == cat %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Product Photo Section -->
+          <div class="col-12 col-md-9">
+            <label for="image_path" class="form-label small fw-semibold">Product Image URL</label>
+            <input type="url" class="form-control form-control-custom" id="image_path" name="image_path" value="{{ product.image_path or '' }}" placeholder="https://images.unsplash.com/... or https://images.openfoodfacts.org/...">
+            <div class="form-text">Direct high-res photo link from Unsplash, Open Food Facts, or your grocery CDN.</div>
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label small fw-semibold">Photo Preview</label>
+            <div class="product-form-img-preview" id="previewContainer">
+              {% if product.image_path %}
+                <img id="formImgPreview" src="{{ product.image_path }}" alt="Preview" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=75';">
+              {% else %}
+                <img id="formImgPreview" src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=75" alt="Preview" class="opacity-50">
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label for="description" class="form-label small fw-semibold">Description</label>
+            <textarea class="form-control form-control-custom" id="description" name="description" rows="2" placeholder="Brief notes on product quality, packaging, origin...">{{ product.description or '' }}</textarea>
+          </div>
+
+          <!-- Pricing & Stock -->
+          <div class="col-12 mt-4">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">2. Pricing & Stock Thresholds</h5>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="unit_price" class="form-label small fw-semibold">Selling Price (₹) <span class="text-danger">*</span></label>
+            <div class="input-group">
+              <span class="input-group-text bg-white">₹</span>
+              <input type="number" step="0.01" min="0" class="form-control form-control-custom" id="unit_price" name="unit_price" value="{{ product.unit_price or '' }}" placeholder="0.00" required>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="cost_price" class="form-label small fw-semibold">Cost / Procurement Price (₹)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white">₹</span>
+              <input type="number" step="0.01" min="0" class="form-control form-control-custom" id="cost_price" name="cost_price" value="{{ product.cost_price or '' }}" placeholder="0.00">
+            </div>
+            <div class="form-text">Used to compute inventory asset valuation and profit margins.</div>
+          </div>
+
+          {% if not is_edit %}
+          <div class="col-12 col-md-6">
+            <label for="stock_qty" class="form-label small fw-semibold">Opening Stock Quantity <span class="text-danger">*</span></label>
+            <input type="number" min="0" class="form-control form-control-custom" id="stock_qty" name="stock_qty" value="{{ product.stock_qty or '0' }}" required>
+          </div>
+          {% endif %}
+
+          <div class="col-12 col-md-6">
+            <label for="reorder_level" class="form-label small fw-semibold">Low-Stock Reorder Threshold <span class="text-danger">*</span></label>
+            <input type="number" min="0" class="form-control form-control-custom" id="reorder_level" name="reorder_level" value="{{ product.reorder_level or '10' }}" required>
+            <div class="form-text">Alert triggers when stock drops to or below this level.</div>
+          </div>
+
+          <!-- Expiry & Supplier -->
+          <div class="col-12 mt-4">
+            <h5 class="fw-bold mb-3 border-bottom pb-2">3. Expiry & Supply Chain</h5>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="expiry_date" class="form-label small fw-semibold">Expiry Date (Optional)</label>
+            <input type="date" class="form-control form-control-custom" id="expiry_date" name="expiry_date" value="{% if product.expiry_date %}{{ product.expiry_date.strftime('%Y-%m-%d') if product.expiry_date.strftime is defined else product.expiry_date }}{% endif %}">
+            <div class="form-text">Leave blank if product does not expire (e.g. household items).</div>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label for="supplier_id" class="form-label small fw-semibold">Primary Supplier</label>
+            <select class="form-select form-control-custom" id="supplier_id" name="supplier_id">
+              <option value="">None / Direct Wholesale</option>
+              {% for s in suppliers %}
+                <option value="{{ s.supplier_id }}" {% if product.supplier_id == s.supplier_id %}selected{% endif %}>{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Buttons -->
+          <div class="col-12 d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-green px-4">
+              <i class="bi bi-check2 me-1"></i> {% if is_edit %}Save Changes{% else %}Create Product{% endif %}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const imageInput = document.getElementById("image_path");
+  const imgPreview = document.getElementById("formImgPreview");
+  const barcodeInput = document.getElementById("barcode");
+  const btnLookup = document.getElementById("btnLookupOff");
+  const lookupStatus = document.getElementById("barcodeLookupStatus");
+
+  // Real-time photo preview
+  if (imageInput && imgPreview) {
+    imageInput.addEventListener("input", function() {
+      const url = this.value.trim();
+      if (url) {
+        imgPreview.src = url;
+        imgPreview.classList.remove("opacity-50");
+      } else {
+        imgPreview.src = "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=75";
+        imgPreview.classList.add("opacity-50");
+      }
+    });
+  }
+
+  // Live Open Food Facts lookup
+  if (btnLookup && barcodeInput) {
+    btnLookup.addEventListener("click", function() {
+      const code = barcodeInput.value.trim();
+      if (!code) {
+        alert("Please enter a barcode first (e.g. 3017620422003 or 5449000000996).");
+        barcodeInput.focus();
+        return;
+      }
+
+      lookupStatus.innerHTML = '<span class="spinner-border spinner-border-sm text-success me-1"></span> Fetching verified data from Open Food Facts database...';
+      btnLookup.disabled = true;
+
+      fetch(`/products/api/openfoodfacts/${encodeURIComponent(code)}`)
+        .then(res => {
+          if (!res.ok) throw new Error("Barcode not found in Open Food Facts database.");
+          return res.json();
+        })
+        .then(data => {
+          btnLookup.disabled = false;
+          lookupStatus.innerHTML = `<span class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i> Sourced from ${data.source}: <strong>${data.name}</strong></span>`;
+
+          // Auto-fill form fields
+          const nameInput = document.getElementById("name");
+          if (nameInput && (!nameInput.value || nameInput.value.trim() === '')) {
+            nameInput.value = data.name;
+          }
+
+          const catSelect = document.getElementById("category");
+          if (catSelect && data.category) {
+            for (let i = 0; i < catSelect.options.length; i++) {
+              if (catSelect.options[i].value === data.category) {
+                catSelect.selectedIndex = i;
+                break;
+              }
+            }
+          }
+
+          if (data.image_url) {
+            imageInput.value = data.image_url;
+            imgPreview.src = data.image_url;
+            imgPreview.classList.remove("opacity-50");
+          }
+
+          const priceInput = document.getElementById("unit_price");
+          if (priceInput && (!priceInput.value || parseFloat(priceInput.value) === 0)) {
+            priceInput.value = data.suggested_price || 99.0;
+          }
+
+          const costInput = document.getElementById("cost_price");
+          if (costInput && (!costInput.value || parseFloat(costInput.value) === 0)) {
+            costInput.value = data.cost_price || 70.0;
+          }
+        })
+        .catch(err => {
+          btnLookup.disabled = false;
+          lookupStatus.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i> ${err.message || 'Lookup failed.'}</span>`;
+        });
+    });
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Sales History — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Sales History & Transactions{% endblock %}
+{% block page_subtitle %}Searchable ledger of all finalized customer checkout sessions and receipts{% endblock %}
+
+{% block content %}
+<!-- Multi-Filter Bar -->
+<div class="card-custom p-3 mb-4">
+  <form method="GET" action="{{ url_for('sales.index') }}">
+    <div class="row g-2 align-items-center">
+      <div class="col-12 col-md-3">
+        <div class="input-group input-group-sm">
+          <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+          <input type="text" name="invoice" class="form-control form-control-custom border-start-0 font-monospace" placeholder="Invoice #..." value="{{ search_invoice }}">
+        </div>
+      </div>
+
+      {% if current_user.is_admin and cashiers %}
+      <div class="col-6 col-md-2">
+        <select name="cashier_id" class="form-select form-select-sm form-control-custom">
+          <option value="">All Cashiers</option>
+          {% for c in cashiers %}
+            <option value="{{ c.user_id }}" {% if cashier_id == c.user_id %}selected{% endif %}>{{ c.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="col-6 col-md-2">
+        <select name="payment_method" class="form-select form-select-sm form-control-custom">
+          <option value="">All Methods</option>
+          <option value="Cash" {% if payment_method == 'Cash' %}selected{% endif %}>Cash</option>
+          <option value="Card" {% if payment_method == 'Card' %}selected{% endif %}>Card</option>
+          <option value="UPI" {% if payment_method == 'UPI' %}selected{% endif %}>UPI</option>
+          <option value="Digital Wallet" {% if payment_method == 'Digital Wallet' %}selected{% endif %}>Digital Wallet</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-md-2">
+        <input type="date" name="start_date" class="form-control form-control-sm form-control-custom" value="{{ start_date }}" placeholder="Start Date" title="From Date">
+      </div>
+
+      <div class="col-6 col-md-2">
+        <input type="date" name="end_date" class="form-control form-control-sm form-control-custom" value="{{ end_date }}" placeholder="End Date" title="To Date">
+      </div>
+
+      <div class="col-12 col-md-1 d-flex gap-1">
+        <button type="submit" class="btn btn-sm btn-green flex-fill" title="Apply Filters">
+          <i class="bi bi-funnel"></i>
+        </button>
+        {% if search_invoice or cashier_id or payment_method or start_date or end_date or min_total or max_total %}
+        <a href="{{ url_for('sales.index') }}" class="btn btn-sm btn-outline-secondary" title="Reset Filters">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Sales Transactions Table -->
+<div class="card-custom p-0 overflow-hidden mb-4">
+  <div class="table-responsive">
+    <table class="table-custom mb-0">
+      <thead>
+        <tr>
+          <th>Invoice #</th>
+          <th>Date & Time</th>
+          <th>Cashier</th>
+          <th class="text-center">Items</th>
+          <th class="text-end">Subtotal</th>
+          <th class="text-end">Discount</th>
+          <th class="text-end">Tax</th>
+          <th class="text-end">Grand Total</th>
+          <th>Payment</th>
+          <th class="text-end">Receipt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sales %}
+        <tr>
+          <td class="font-monospace small fw-bold">
+            <a href="{{ url_for('sales.details', sale_id=s.sale_id) }}" class="text-dark text-decoration-none">
+              {{ s.invoice_number }}
+            </a>
+          </td>
+          <td class="small">
+            <div>{{ s.sale_date.strftime('%d-%b-%Y') }}</div>
+            <div class="text-muted" style="font-size: 0.72rem;">{{ s.sale_time.strftime('%H:%M:%S') if s.sale_time else '' }}</div>
+          </td>
+          <td>{{ s.cashier.full_name }}</td>
+          <td class="text-center">
+            <span class="badge bg-light text-dark border">{{ s.total_quantity }} pcs</span>
+          </td>
+          <td class="text-end text-muted small">{{ s.subtotal|currency }}</td>
+          <td class="text-end text-danger small">
+            {% if s.discount_amount > 0 %}-{{ s.discount_amount|currency }}{% else %}—{% endif %}
+          </td>
+          <td class="text-end text-muted small">{{ s.tax_amount|currency }}</td>
+          <td class="text-end fw-bold text-success">{{ s.total_amount|currency }}</td>
+          <td><span class="badge bg-light text-secondary border">{{ s.payment_method }}</span></td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{{ url_for('sales.receipt', sale_id=s.sale_id) }}" target="_blank" class="btn btn-sm btn-light border py-1 px-2" title="Print Thermal Receipt">
+                <i class="bi bi-printer"></i>
+              </a>
+              <a href="{{ url_for('sales.details', sale_id=s.sale_id) }}" class="btn btn-sm btn-light border py-1 px-2" title="View Breakdown">
+                <i class="bi bi-eye"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-5">
+            <i class="bi bi-receipt fs-2 d-block mb-2"></i>
+            No sales records match the selected filters.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+  <div class="p-3 border-top d-flex align-items-center justify-content-between">
+    <div class="text-muted small">
+      Showing page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} total sales)
+    </div>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('sales.index', page=pagination.prev_num, invoice=search_invoice, cashier_id=cashier_id, payment_method=payment_method, start_date=start_date, end_date=end_date) }}">Previous</a>
+      </li>
+      <li class="page-item active"><span class="page-link">{{ pagination.page }}</span></li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('sales.index', page=pagination.next_num, invoice=search_invoice, cashier_id=cashier_id, payment_method=payment_method, start_date=start_date, end_date=end_date) }}">Next</a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

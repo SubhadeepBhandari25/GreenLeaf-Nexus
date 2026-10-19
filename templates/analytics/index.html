@@ -1,0 +1,501 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics & Intelligence — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Sales & Demand Analytics{% endblock %}
+{% block page_subtitle %}Pandas-powered business intelligence, category contribution, and predictive demand replenishment{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="card-custom p-3 mb-4">
+  <form method="GET" action="{{ url_for('analytics.index') }}">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="text-secondary small fw-semibold"><i class="bi bi-calendar-range me-1"></i>Period:</span>
+        <div class="btn-group btn-group-sm" role="group">
+          <a href="{{ url_for('analytics.index', range='today') }}" class="btn {% if current_range == 'today' %}btn-green{% else %}btn-outline-secondary{% endif %}">Today</a>
+          <a href="{{ url_for('analytics.index', range='last_7_days') }}" class="btn {% if current_range == 'last_7_days' %}btn-green{% else %}btn-outline-secondary{% endif %}">7 Days</a>
+          <a href="{{ url_for('analytics.index', range='last_30_days') }}" class="btn {% if current_range == 'last_30_days' %}btn-green{% else %}btn-outline-secondary{% endif %}">30 Days</a>
+          <a href="{{ url_for('analytics.index', range='this_month') }}" class="btn {% if current_range == 'this_month' %}btn-green{% else %}btn-outline-secondary{% endif %}">This Month</a>
+          <a href="{{ url_for('analytics.index', range='prev_month') }}" class="btn {% if current_range == 'prev_month' %}btn-green{% else %}btn-outline-secondary{% endif %}">Last Month</a>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <input type="hidden" name="range" value="custom">
+        <input type="date" name="start_date" class="form-control form-control-sm form-control-custom" value="{{ custom_start }}" placeholder="Start Date">
+        <span class="text-muted small">to</span>
+        <input type="date" name="end_date" class="form-control form-control-sm form-control-custom" value="{{ custom_end }}" placeholder="End Date">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Custom</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Key Performance Indicators -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Period Revenue</span>
+        <div class="kpi-icon-wrapper kpi-icon-green"><i class="bi bi-currency-rupee"></i></div>
+      </div>
+      <div class="kpi-value">{{ kpis.total_revenue|currency }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">{{ kpis.period_label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Completed Bills</span>
+        <div class="kpi-icon-wrapper kpi-icon-blue"><i class="bi bi-receipt"></i></div>
+      </div>
+      <div class="kpi-value">{{ kpis.total_bills }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Total checkouts</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Average Bill Value</span>
+        <div class="kpi-icon-wrapper kpi-icon-amber"><i class="bi bi-calculator"></i></div>
+      </div>
+      <div class="kpi-value">{{ kpis.average_bill_value|currency }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Per transaction spend</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Top Category Share</span>
+        <div class="kpi-icon-wrapper kpi-icon-green"><i class="bi bi-pie-chart"></i></div>
+      </div>
+      <div class="kpi-value">
+        {% if category_perf %}
+          {{ category_perf[0].percentage }}%
+        {% else %}0%{% endif %}
+      </div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Leader: {% if category_perf %}{{ category_perf[0].category }}{% else %}None{% endif %}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Charts Row 1 -->
+<div class="row g-4 mb-4">
+  <!-- Daily Revenue Trajectory -->
+  <div class="col-12 col-xl-7">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div>
+          <h3>Daily Revenue Performance</h3>
+          <p class="text-secondary small mb-0">Time-series daily trajectory across the selected window</p>
+        </div>
+      </div>
+      <div id="analyticsLineChart" style="height: 320px; width: 100%;"></div>
+    </div>
+  </div>
+
+  <!-- Category Contribution -->
+  <div class="col-12 col-xl-5">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom pb-2">
+        <div>
+          <h3 class="mb-0">Category Breakdown</h3>
+          <p class="text-secondary small mb-0" id="analyticsCatSubtitle">Interactive revenue distribution by category</p>
+        </div>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Chart View Toggle">
+          <button type="button" class="btn btn-outline-secondary active" id="btnAnalyticsCatDonut" title="Interactive Pie / Donut Chart"><i class="bi bi-pie-chart-fill me-1"></i>Pie</button>
+          <button type="button" class="btn btn-outline-secondary" id="btnAnalyticsCatBar" title="Ranked Bar Chart"><i class="bi bi-bar-chart-fill me-1"></i>Bar</button>
+        </div>
+      </div>
+      <div id="analyticsCategoryBar" style="height: 320px; width: 100%;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Interactive Charts Row 2: Top Products & Monthly Growth -->
+<div class="row g-4 mb-4">
+  <!-- Top 10 Products Chart -->
+  <div class="col-12 col-xl-6">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div>
+          <h3>Top 10 Products by Revenue</h3>
+          <p class="text-secondary small mb-0">Ranked by gross sales volume in period</p>
+        </div>
+      </div>
+      <div id="analyticsTopProdChart" style="height: 340px; width: 100%;"></div>
+    </div>
+  </div>
+
+  <!-- Monthly Sales Performance -->
+  <div class="col-12 col-xl-6">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div>
+          <h3>12-Month Historical Performance</h3>
+          <p class="text-secondary small mb-0">Month-over-month revenue and bill volume comparison</p>
+        </div>
+      </div>
+      <div id="analyticsMonthlyChart" style="height: 340px; width: 100%;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 19: 7-Day Demand Forecasting & Suggested Replenishment -->
+<div class="card-custom p-0 overflow-hidden mb-4">
+  <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <div class="brand-logo-icon" style="width: 32px; height: 32px; font-size: 1rem; background: #eef4fd; color: var(--info);">
+        <i class="bi bi-magic"></i>
+      </div>
+      <div>
+        <h4 class="fs-6 fw-bold mb-0">7-Day Sales Demand Forecast & Automated Replenishment Suggestion</h4>
+        <span class="text-secondary small">Calculated from 30-day historical moving average daily velocity factoring safety stock</span>
+      </div>
+    </div>
+    <span class="badge bg-light text-dark border">Section 19 Machine Learning / Analytics</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom mb-0">
+      <thead>
+        <tr>
+          <th>Product / SKU</th>
+          <th>Category</th>
+          <th class="text-center">Current Stock</th>
+          <th class="text-center">Avg Daily Demand</th>
+          <th class="text-center">Predicted 7d Demand</th>
+          <th class="text-center">Safety Stock</th>
+          <th class="text-center">Suggested Replenishment</th>
+          <th>Confidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in forecasts %}
+        <tr>
+          <td>
+            <a href="{{ url_for('products.details', product_id=f.product_id) }}" class="fw-semibold text-dark text-decoration-none">
+              {{ f.name }}
+            </a>
+            <div class="text-muted small font-monospace">{{ f.sku }}</div>
+          </td>
+          <td><span class="badge bg-light text-dark border">{{ f.category }}</span></td>
+          <td class="text-center fw-bold {% if f.current_stock <= f.safety_stock %}text-warning{% endif %}">
+            {{ f.current_stock }}
+          </td>
+          <td class="text-center font-monospace">{{ f.avg_daily_demand }}/day</td>
+          <td class="text-center fw-bold font-monospace text-primary">{{ f.predicted_7d_demand }} units</td>
+          <td class="text-center text-muted small">{{ f.safety_stock }}</td>
+          <td class="text-center">
+            {% if f.suggested_replenishment > 0 %}
+              <span class="badge bg-danger-subtle text-danger fw-bold border border-danger-subtle px-2 py-1">
+                +{{ f.suggested_replenishment }} units
+              </span>
+            {% else %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                <i class="bi bi-check"></i> Sufficient
+              </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if f.confidence == 'High' %}
+              <span class="badge bg-success-subtle text-success border">High Velocity</span>
+            {% elif f.confidence == 'Moderate' %}
+              <span class="badge bg-info-subtle text-info border">Moderate</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border">Low History</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Slow-Moving Products Surveillance -->
+<div class="card-custom p-0 overflow-hidden mb-4">
+  <div class="p-3 border-bottom">
+    <h4 class="fs-6 fw-bold mb-0">Slow-Moving Products Surveillance (Last 30 Days)</h4>
+    <span class="text-secondary small">Items with zero or minimal transactions requiring markdown or promotion</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom mb-0">
+      <thead>
+        <tr>
+          <th>Product / SKU</th>
+          <th>Category</th>
+          <th class="text-center">Units Sold (30d)</th>
+          <th class="text-center">Current Idle Stock</th>
+          <th>Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sm in slow_movers %}
+        <tr>
+          <td>
+            <a href="{{ url_for('products.details', product_id=sm.product_id) }}" class="fw-semibold text-dark text-decoration-none">
+              {{ sm.name }}
+            </a>
+            <div class="text-muted small font-monospace">{{ sm.sku }}</div>
+          </td>
+          <td><span class="badge bg-light text-dark border">{{ sm.category }}</span></td>
+          <td class="text-center fw-bold text-danger">{{ sm.units_sold_30d }}</td>
+          <td class="text-center text-muted">{{ sm.stock_qty }}</td>
+          <td>
+            {% if sm.status == 'No Sales' %}
+              <span class="badge bg-danger-subtle text-danger border">Zero Sales (30d)</span>
+            {% else %}
+              <span class="badge bg-warning-subtle text-warning border">Critically Slow</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <a href="{{ url_for('products.edit', product_id=sm.product_id) }}" class="btn btn-sm btn-outline-secondary py-0 px-2">
+              Review Pricing
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-center text-muted py-4">No slow moving products identified.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // 1. Daily Revenue Chart
+  const trendLabels = {{ sales_trend.labels|tojson }};
+  const trendRevenue = {{ sales_trend.revenue|tojson }};
+
+  Plotly.newPlot('analyticsLineChart', [{
+    x: trendLabels,
+    y: trendRevenue,
+    type: 'scatter',
+    mode: 'lines+markers',
+    line: { color: '#16865B', width: 2.5, shape: 'spline' },
+    marker: { size: 5, color: '#116B49' },
+    fill: 'tozeroy',
+    fillcolor: 'rgba(22, 134, 91, 0.08)'
+  }], {
+    margin: { t: 20, r: 20, l: 50, b: 40 },
+    xaxis: { showgrid: false, tickfont: { size: 10, color: '#737D76' } },
+    yaxis: { gridcolor: '#F0F4F1', tickprefix: '₹', tickfont: { size: 10, color: '#737D76' } },
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent'
+  }, { responsive: true, displayModeBar: false });
+
+  // 2. Interactive Category Breakdown (Donut / Pie & Bar Toggle)
+  const catData = {{ category_perf|tojson }};
+  const catPlotColors = [
+    '#16865B', '#27AE60', '#2980B9', '#3498DB', 
+    '#F39C12', '#E67E22', '#8E44AD', '#16A085', 
+    '#D35400', '#2C3E50', '#E74C3C', '#1ABC9C'
+  ];
+  const catChartEl = document.getElementById('analyticsCategoryBar');
+  const catTotalRev = catData.reduce((acc, c) => acc + (Number(c.revenue) || 0), 0);
+
+  function getCatDonutTrace(pullArr = null) {
+    if (!catData || catData.length === 0) {
+      return [{
+        labels: ['No Data'],
+        values: [1],
+        type: 'pie',
+        hole: 0.62,
+        marker: { colors: ['#E2E8F0'] },
+        textinfo: 'label'
+      }];
+    }
+    return [{
+      labels: catData.map(c => c.category),
+      values: catData.map(c => c.revenue),
+      type: 'pie',
+      hole: 0.62,
+      pull: pullArr || new Array(catData.length).fill(0),
+      marker: {
+        colors: catPlotColors.slice(0, catData.length),
+        line: { color: '#ffffff', width: 2 }
+      },
+      textinfo: 'percent',
+      textposition: 'inside',
+      insidetextfont: { color: '#ffffff', size: 11, weight: 'bold' },
+      hovertemplate: '<b>%{label}</b><br>Revenue: ₹%{value:,.2f}<br>Share: %{percent}<extra></extra>'
+    }];
+  }
+
+  function getCatDonutLayout() {
+    return {
+      margin: { t: 15, r: 15, l: 15, b: 15 },
+      showlegend: false,
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      autosize: true,
+      annotations: [{
+        text: `<span style="font-size:10px;color:#737D76;font-weight:600;text-transform:uppercase;">TOTAL REVENUE</span><br><b style="font-size:15px;color:#1B2E24;">₹${catTotalRev.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>`,
+        showarrow: false,
+        font: { family: 'Inter, system-ui, sans-serif' },
+        align: 'center',
+        x: 0.5,
+        y: 0.5
+      }]
+    };
+  }
+
+  function getCatBarData() {
+    return [{
+      x: catData.map(c => c.category),
+      y: catData.map(c => c.revenue),
+      type: 'bar',
+      marker: {
+        color: catPlotColors.slice(0, catData.length),
+        opacity: 0.9
+      },
+      hovertemplate: '<b>%{x}</b><br>Revenue: ₹%{y:,.2f}<extra></extra>'
+    }];
+  }
+
+  function getCatBarLayout() {
+    return {
+      margin: { t: 20, r: 20, l: 50, b: 60 },
+      xaxis: { tickangle: -25, tickfont: { size: 10, color: '#737D76' } },
+      yaxis: { gridcolor: '#F0F4F1', tickprefix: '₹', tickfont: { size: 10, color: '#737D76' } },
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      autosize: true
+    };
+  }
+
+  let analyticsCatMode = 'donut';
+  let analyticsCatSelectedIdx = null;
+
+  if (catChartEl && catData.length > 0) {
+    Plotly.newPlot(catChartEl, getCatDonutTrace(), getCatDonutLayout(), { responsive: true, displayModeBar: false });
+
+    // Hover center update
+    catChartEl.on('plotly_hover', function(data) {
+      if (analyticsCatMode !== 'donut' || analyticsCatSelectedIdx !== null) return;
+      const idx = data.points[0].pointNumber;
+      const item = catData[idx];
+      if (!item) return;
+
+      Plotly.relayout(catChartEl, {
+        annotations: [{
+          text: `<span style="font-size:11px;color:#737D76;font-weight:600;">${item.category}</span><br><b style="font-size:15px;color:#16865B;">₹${Number(item.revenue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b><br><span style="font-size:10px;color:#737D76;">${item.percentage}%</span>`,
+          showarrow: false,
+          font: { family: 'Inter, system-ui, sans-serif' },
+          align: 'center',
+          x: 0.5,
+          y: 0.5
+        }]
+      });
+    });
+
+    catChartEl.on('plotly_unhover', function() {
+      if (analyticsCatMode !== 'donut' || analyticsCatSelectedIdx !== null) return;
+      Plotly.relayout(catChartEl, getCatDonutLayout());
+    });
+
+    // Click to explode
+    catChartEl.on('plotly_click', function(data) {
+      if (analyticsCatMode !== 'donut') return;
+      const idx = data.points[0].pointNumber;
+      if (analyticsCatSelectedIdx === idx) {
+        analyticsCatSelectedIdx = null;
+        Plotly.relayout(catChartEl, getCatDonutLayout());
+        Plotly.restyle(catChartEl, { pull: [new Array(catData.length).fill(0)] });
+      } else {
+        analyticsCatSelectedIdx = idx;
+        const pullArr = new Array(catData.length).fill(0);
+        pullArr[idx] = 0.12;
+        const item = catData[idx];
+        Plotly.relayout(catChartEl, {
+          annotations: [{
+            text: `<span style="font-size:11px;color:#737D76;font-weight:600;">${item.category}</span><br><b style="font-size:15px;color:#16865B;">₹${Number(item.revenue).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</b><br><span style="font-size:10px;color:#737D76;">${item.percentage}%</span>`,
+            showarrow: false,
+            font: { family: 'Inter, system-ui, sans-serif' },
+            align: 'center',
+            x: 0.5,
+            y: 0.5
+          }]
+        });
+        Plotly.restyle(catChartEl, { pull: [pullArr] });
+      }
+    });
+
+    // View Toggles: Pie/Donut vs Bar
+    const btnDonut = document.getElementById('btnAnalyticsCatDonut');
+    const btnBar = document.getElementById('btnAnalyticsCatBar');
+    const subTitle = document.getElementById('analyticsCatSubtitle');
+
+    if (btnDonut && btnBar) {
+      btnDonut.addEventListener('click', function() {
+        if (analyticsCatMode === 'donut') return;
+        analyticsCatMode = 'donut';
+        btnDonut.classList.add('active');
+        btnBar.classList.remove('active');
+        if (subTitle) subTitle.textContent = 'Interactive revenue distribution by category';
+        analyticsCatSelectedIdx = null;
+        Plotly.react(catChartEl, getCatDonutTrace(), getCatDonutLayout());
+      });
+
+      btnBar.addEventListener('click', function() {
+        if (analyticsCatMode === 'bar') return;
+        analyticsCatMode = 'bar';
+        btnBar.classList.add('active');
+        btnDonut.classList.remove('active');
+        if (subTitle) subTitle.textContent = 'Gross revenue ranked per category';
+        Plotly.react(catChartEl, getCatBarData(), getCatBarLayout());
+      });
+    }
+  }
+
+  // 3. Top 10 Products Horizontal Bar
+  const topProdData = {{ top_products|tojson }};
+  const revTop = topProdData.slice().reverse();
+  Plotly.newPlot('analyticsTopProdChart', [{
+    y: revTop.map(p => p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name),
+    x: revTop.map(p => p.revenue),
+    type: 'bar',
+    orientation: 'h',
+    marker: { color: '#16865B', opacity: 0.9 }
+  }], {
+    margin: { t: 20, r: 20, l: 140, b: 40 },
+    xaxis: { gridcolor: '#F0F4F1', tickprefix: '₹', tickfont: { size: 10, color: '#737D76' } },
+    yaxis: { tickfont: { size: 10, color: '#202A24' } },
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent'
+  }, { responsive: true, displayModeBar: false });
+
+  // 4. Monthly Performance
+  const monthlyData = {{ monthly_sales|tojson }};
+  Plotly.newPlot('analyticsMonthlyChart', [{
+    x: monthlyData.map(m => m.month_label),
+    y: monthlyData.map(m => m.revenue),
+    type: 'bar',
+    marker: { color: '#16A085' }
+  }], {
+    margin: { t: 20, r: 20, l: 50, b: 40 },
+    xaxis: { showgrid: false, tickfont: { size: 10, color: '#737D76' } },
+    yaxis: { gridcolor: '#F0F4F1', tickprefix: '₹', tickfont: { size: 10, color: '#737D76' } },
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent'
+  }, { responsive: true, displayModeBar: false });
+</script>
+{% endblock %}

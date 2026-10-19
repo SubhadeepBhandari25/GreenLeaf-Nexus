@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Products — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Product Catalog Management{% endblock %}
+{% block page_subtitle %}Manage grocery SKUs, inventory thresholds, pricing, and suppliers{% endblock %}
+
+{% block content %}
+<!-- Top Action & Filter Bar -->
+<div class="card-custom p-3 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <!-- Filter form -->
+    <form method="GET" action="{{ url_for('products.index') }}" class="d-flex flex-wrap align-items-center gap-2 flex-grow-1">
+      <div class="input-group input-group-sm" style="max-width: 260px;">
+        <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+        <input type="text" name="search" class="form-control form-control-custom border-start-0" placeholder="Search name or SKU..." value="{{ search }}">
+      </div>
+
+      <select name="category" class="form-select form-select-sm form-control-custom" style="max-width: 170px;">
+        <option value="all">All Categories</option>
+        {% for cat in categories %}
+          <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="stock_status" class="form-select form-select-sm form-control-custom" style="max-width: 150px;">
+        <option value="">All Stock</option>
+        <option value="in_stock" {% if stock_filter == 'in_stock' %}selected{% endif %}>In Stock</option>
+        <option value="low_stock" {% if stock_filter == 'low_stock' %}selected{% endif %}>Low Stock</option>
+        <option value="out_of_stock" {% if stock_filter == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+      </select>
+
+      <select name="status" class="form-select form-select-sm form-control-custom" style="max-width: 140px;">
+        <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Records</option>
+      </select>
+
+      <button type="submit" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-funnel me-1"></i> Filter
+      </button>
+
+      {% if search or (selected_category and selected_category != 'all') or stock_filter or (status_filter and status_filter != 'active') %}
+      <a href="{{ url_for('products.index') }}" class="btn btn-sm btn-link text-muted">Reset</a>
+      {% endif %}
+    </form>
+
+    <!-- Buttons -->
+    <div class="d-flex align-items-center gap-2">
+      <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#foodApiModal">
+        <i class="bi bi-globe me-1"></i> Live Food API DB
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importCsvModal">
+        <i class="bi bi-upload me-1"></i> Import CSV
+      </button>
+      <a href="{{ url_for('products.create') }}" class="btn btn-sm btn-green">
+        <i class="bi bi-plus-lg me-1"></i> Add Product
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Products Table -->
+<div class="card-custom p-0 overflow-hidden mb-4">
+  <div class="table-responsive">
+    <table class="table-custom mb-0">
+      <thead>
+        <tr>
+          <th style="width: 56px;">Item</th>
+          <th>SKU</th>
+          <th>Product Name</th>
+          <th>Category</th>
+          <th class="text-end">Selling Price</th>
+          <th class="text-end">Cost Price</th>
+          <th class="text-center">Current Stock</th>
+          <th class="text-center">Reorder Level</th>
+          <th>Expiry Date</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr class="{% if not p.is_active %}opacity-75 bg-light{% endif %}">
+          <td>
+            {% if p.image_path %}
+              <img src="{{ p.image_path }}" alt="{{ p.name }}" class="product-table-thumb" loading="lazy" onerror="this.onerror=null; this.src='/static/img/product-placeholder.png';">
+            {% else %}
+              <div class="product-table-thumb d-flex align-items-center justify-content-center text-muted bg-light">
+                <i class="bi bi-basket"></i>
+              </div>
+            {% endif %}
+          </td>
+          <td class="font-monospace small fw-semibold text-secondary">
+            <a href="{{ url_for('products.details', product_id=p.product_id) }}" class="text-decoration-none text-dark">
+              {{ p.sku }}
+            </a>
+          </td>
+          <td>
+            <a href="{{ url_for('products.details', product_id=p.product_id) }}" class="fw-semibold text-dark text-decoration-none">
+              {{ p.name }}
+            </a>
+            {% if p.barcode %}
+              <span class="text-muted small d-block font-monospace"><i class="bi bi-upc"></i> {{ p.barcode }}</span>
+            {% endif %}
+          </td>
+          <td><span class="badge bg-light text-dark border">{{ p.category }}</span></td>
+          <td class="text-end fw-bold text-success">{{ p.unit_price|currency }}</td>
+          <td class="text-end text-muted small">{{ p.cost_price|currency }}</td>
+          <td class="text-center fw-bold {% if p.stock_qty <= 0 %}text-danger{% elif p.stock_qty <= p.reorder_level %}text-warning{% else %}text-dark{% endif %}">
+            {{ p.stock_qty }}
+          </td>
+          <td class="text-center text-muted small">{{ p.reorder_level }}</td>
+          <td>
+            {% if p.expiry_date %}
+              <div class="small">{{ p.expiry_date.strftime('%d %b %Y') }}</div>
+              {% if p.expiry_status == 'expired' %}
+                <span class="badge-custom badge-expired">Expired</span>
+              {% elif p.expiry_status in ('today', 'within_7', 'within_15') %}
+                <span class="badge-custom badge-near-expiry">{{ p.days_to_expiry }}d left</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if p.is_active %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+            {% else %}
+              <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <a href="{{ url_for('products.edit', product_id=p.product_id) }}" class="btn btn-sm btn-light border py-1 px-2" title="Edit Product">
+                <i class="bi bi-pencil"></i>
+              </a>
+              <form method="POST" action="{{ url_for('products.toggle_status', product_id=p.product_id) }}" class="d-inline" onsubmit="return confirm('Change status for {{ p.name }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-light border py-1 px-2 {% if p.is_active %}text-danger{% else %}text-success{% endif %}" title="{% if p.is_active %}Deactivate{% else %}Activate{% endif %}">
+                  <i class="bi {% if p.is_active %}bi-eye-slash{% else %}bi-eye{% endif %}"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+            No products match the selected criteria.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+  <div class="p-3 border-top d-flex align-items-center justify-content-between">
+    <div class="text-muted small">
+      Showing page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} items)
+    </div>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('products.index', page=pagination.prev_num, search=search, category=selected_category, stock_status=stock_filter, status=status_filter) }}">Previous</a>
+      </li>
+      {% for p_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p_num %}
+          <li class="page-item {% if p_num == pagination.page %}active{% endif %}">
+            <a class="page-link" href="{{ url_for('products.index', page=p_num, search=search, category=selected_category, stock_status=stock_filter, status=status_filter) }}">{{ p_num }}</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('products.index', page=pagination.next_num, search=search, category=selected_category, stock_status=stock_filter, status=status_filter) }}">Next</a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<!-- CSV Import Modal -->
+<div class="modal fade" id="importCsvModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow-lg">
+      <form method="POST" action="{{ url_for('products.import_csv') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Import Products via CSV</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-secondary small mb-3">
+            Upload a CSV spreadsheet with products to bulk populate the catalog. Required columns: <code>sku, name, category, unit_price, stock_qty</code>.
+          </p>
+          <div class="mb-3">
+            <label for="csvFileInput" class="form-label small fw-semibold">Choose CSV File</label>
+            <input type="file" class="form-control form-control-custom" id="csvFileInput" name="file" accept=".csv" required>
+          </div>
+          <div class="alert alert-info small mb-0">
+            <i class="bi bi-info-circle me-1"></i> Optional columns: <code>cost_price, reorder_level, expiry_date (YYYY-MM-DD), supplier_name, barcode</code>.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-green">Upload & Process</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Live Food API Database Modal -->
+<div class="modal fade" id="foodApiModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-light">
+        <div>
+          <h5 class="modal-title fw-bold text-success mb-0"><i class="bi bi-globe me-2"></i>Open Food Facts Global Product Database</h5>
+          <span class="text-muted small">Live lookup across 3,000,000+ real grocery barcodes with verified package photos</span>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <!-- Live Barcode Query Form -->
+        <label class="form-label fw-semibold small">Search by Global Barcode (EAN / UPC / GTIN):</label>
+        <div class="input-group mb-3">
+          <span class="input-group-text bg-white"><i class="bi bi-upc-scan"></i></span>
+          <input type="text" id="foodApiBarcodeQuery" class="form-control form-control-custom font-monospace" placeholder="e.g. 3017620422003 (Nutella) or 5449000000996 (Coca-Cola)...">
+          <button type="button" id="btnFoodApiSearch" class="btn btn-green">
+            <span id="foodSearchSpinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+            <i class="bi bi-search me-1"></i> Query Live API
+          </button>
+        </div>
+
+        <!-- Live Lookup Result Box -->
+        <div id="foodApiResultContainer" class="d-none mb-4">
+          <div class="card border border-success-subtle bg-light p-3">
+            <div class="d-flex gap-3 align-items-center">
+              <img id="foodResultImg" src="" alt="Product Photo" class="food-api-thumb shadow-sm">
+              <div class="flex-grow-1">
+                <span class="badge bg-success-subtle text-success border border-success-subtle mb-1" id="foodResultSource">Open Food Facts Verified</span>
+                <h5 class="fw-bold mb-1" id="foodResultName">Product Name</h5>
+                <div class="small text-muted mb-2">
+                  <span id="foodResultBrand">Brand</span> • Category: <strong id="foodResultCat">Category</strong> • Barcode: <code id="foodResultBarcode">Barcode</code>
+                </div>
+                <form method="POST" action="{{ url_for('products.import_food_item') }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <input type="hidden" name="barcode" id="formBarcode">
+                  <input type="hidden" name="name" id="formName">
+                  <input type="hidden" name="category" id="formCategory">
+                  <input type="hidden" name="image_url" id="formImageUrl">
+                  <input type="hidden" name="unit_price" id="formUnitPrice">
+                  <input type="hidden" name="cost_price" id="formCostPrice">
+                  <input type="hidden" name="stock_qty" value="25">
+                  <button type="submit" class="btn btn-sm btn-green">
+                    <i class="bi bi-plus-circle me-1"></i> Import into Store Catalog (+25 units)
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="foodApiErrorMsg" class="alert alert-warning small d-none">
+          <i class="bi bi-exclamation-triangle me-1"></i> <span id="foodApiErrorText">Product not found.</span>
+        </div>
+
+        <!-- Pre-Indexed Popular Verified Items -->
+        <h6 class="fw-bold mt-4 mb-3 text-secondary border-top pt-3">
+          <i class="bi bi-stars text-warning me-1"></i> Verified Fast-Add Retail Database Items
+        </h6>
+        <div class="row g-2" id="popularApiItemsGrid">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const queryInput = document.getElementById("foodApiBarcodeQuery");
+  const btnSearch = document.getElementById("btnFoodApiSearch");
+  const spinner = document.getElementById("foodSearchSpinner");
+  const resultContainer = document.getElementById("foodApiResultContainer");
+  const errorMsg = document.getElementById("foodApiErrorMsg");
+  const errorText = document.getElementById("foodApiErrorText");
+  const popularGrid = document.getElementById("popularApiItemsGrid");
+
+  // Load Popular Verified Items on modal open
+  fetch("{{ url_for('products.api_food_popular') }}")
+    .then(res => res.json())
+    .then(data => {
+      if (data.items && popularGrid) {
+        popularGrid.innerHTML = data.items.map(item => `
+          <div class="col-12 col-md-6">
+            <div class="food-api-card d-flex align-items-center gap-3">
+              <img src="${item.image_url}" class="food-api-thumb" alt="${item.name}" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=80&q=75';">
+              <div class="flex-grow-1 overflow-hidden">
+                <div class="fw-semibold small text-truncate" title="${item.name}">${item.name}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">${item.brand} • <span class="font-monospace">${item.barcode}</span></div>
+                <div class="fw-bold text-success" style="font-size: 0.8rem;">₹${item.suggested_price.toFixed(2)}</div>
+              </div>
+              <form method="POST" action="{{ url_for('products.import_food_item') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="barcode" value="${item.barcode}">
+                <input type="hidden" name="name" value="${item.name}">
+                <input type="hidden" name="category" value="${item.category}">
+                <input type="hidden" name="image_url" value="${item.image_url}">
+                <input type="hidden" name="unit_price" value="${item.suggested_price}">
+                <input type="hidden" name="cost_price" value="${item.cost_price}">
+                <input type="hidden" name="stock_qty" value="30">
+                <button type="submit" class="btn btn-sm btn-outline-green py-1 px-2" title="Import Item">
+                  <i class="bi bi-download"></i> Add
+                </button>
+              </form>
+            </div>
+          </div>
+        `).join("");
+      }
+    })
+    .catch(err => console.error("Could not load popular food API items", err));
+
+  // Search Live API
+  function performLookup() {
+    const barcode = queryInput.value.trim();
+    if (!barcode) return;
+
+    spinner.classList.remove("d-none");
+    btnSearch.disabled = true;
+    resultContainer.classList.add("d-none");
+    errorMsg.classList.add("d-none");
+
+    fetch(`/products/api/openfoodfacts/${encodeURIComponent(barcode)}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Product barcode not found in Open Food Facts database.");
+        return res.json();
+      })
+      .then(data => {
+        spinner.classList.add("d-none");
+        btnSearch.disabled = false;
+
+        document.getElementById("foodResultImg").src = data.image_url || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=120&q=75';
+        document.getElementById("foodResultName").textContent = data.name;
+        document.getElementById("foodResultBrand").textContent = data.brand || "Unbranded";
+        document.getElementById("foodResultCat").textContent = data.category;
+        document.getElementById("foodResultBarcode").textContent = data.barcode;
+        document.getElementById("foodResultSource").textContent = data.source || "Open Food Facts Live API";
+
+        document.getElementById("formBarcode").value = data.barcode;
+        document.getElementById("formName").value = data.name;
+        document.getElementById("formCategory").value = data.category;
+        document.getElementById("formImageUrl").value = data.image_url || '';
+        document.getElementById("formUnitPrice").value = data.suggested_price || 99.0;
+        document.getElementById("formCostPrice").value = data.cost_price || 70.0;
+
+        resultContainer.classList.remove("d-none");
+      })
+      .catch(err => {
+        spinner.classList.add("d-none");
+        btnSearch.disabled = false;
+        errorText.textContent = err.message || "Failed to contact Open Food Facts API.";
+        errorMsg.classList.remove("d-none");
+      });
+  }
+
+  if (btnSearch) {
+    btnSearch.addEventListener("click", performLookup);
+  }
+  if (queryInput) {
+    queryInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        performLookup();
+      }
+    });
+  }
+});
+</script>
+{% endblock %}
+

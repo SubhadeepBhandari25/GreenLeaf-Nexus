@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Order #{{ sale.invoice_number }} — GreenLeaf 10-Min Live Tracking{% endblock %}
+{% block page_title %}Express Order Tracking ⚡{% endblock %}
+{% block page_subtitle %}Live 10-minute dispatch & GPS delivery progression{% endblock %}
+
+{% block extra_head %}
+<style>
+  .track-hero-card {
+    background: linear-gradient(135deg, #06150D 0%, #0F3824 100%);
+    color: #ffffff;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 12px 32px rgba(15, 56, 36, 0.35);
+    position: relative;
+    overflow: hidden;
+  }
+  .track-hero-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0, 230, 118, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .countdown-display {
+    font-size: 2.6rem;
+    font-weight: 800;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: #00E676;
+    letter-spacing: 2px;
+    text-shadow: 0 0 20px rgba(0, 230, 118, 0.5);
+    line-height: 1;
+  }
+  /* Route Map Simulation */
+  .route-map-canvas {
+    background: #091a11;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+    border-radius: 14px;
+    padding: 1.5rem 1.2rem;
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+  .route-line {
+    height: 6px;
+    background: #193826;
+    border-radius: 3px;
+    position: relative;
+    margin: 2rem 1.5rem;
+  }
+  .route-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #16865B, #00E676);
+    border-radius: 3px;
+    width: 35%;
+    transition: width 1s ease;
+    box-shadow: 0 0 10px rgba(0, 230, 118, 0.8);
+  }
+  .scooter-marker {
+    position: absolute;
+    top: -16px;
+    left: 35%;
+    transform: translateX(-50%);
+    width: 38px;
+    height: 38px;
+    background: #00E676;
+    color: #052615;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 0 20px rgba(0, 230, 118, 0.9);
+    transition: left 1s ease;
+    z-index: 10;
+  }
+  /* Tracking Timeline */
+  .timeline-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 1.5rem;
+  }
+  .timeline-step:last-child {
+    padding-bottom: 0;
+  }
+  .timeline-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 28px;
+    left: 14px;
+    bottom: 0;
+    width: 2px;
+    background: #E2E8F0;
+  }
+  .timeline-step.completed:not(:last-child)::after {
+    background: #16865B;
+  }
+  .timeline-dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #F1F5F9;
+    color: #94A3B8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    z-index: 2;
+    transition: all 0.3s ease;
+  }
+  .timeline-step.completed .timeline-dot {
+    background: #16865B;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(22, 134, 91, 0.4);
+  }
+  .timeline-step.active .timeline-dot {
+    background: #00E676;
+    color: #052615;
+    box-shadow: 0 0 16px rgba(0, 230, 118, 0.8);
+    animation: dotPulse 1.5s infinite;
+  }
+  @keyframes dotPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Left Column: Live GPS & Status Tracking -->
+  <div class="col-12 col-lg-7">
+    <!-- Hero Countdown Banner -->
+    <div class="track-hero-card mb-4">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="badge bg-success-subtle text-success border border-success fw-bold px-3 py-1">
+          <i class="bi bi-lightning-charge-fill text-warning me-1"></i> GREENLEAF 10-MIN EXPRESS
+        </span>
+        <span class="text-white-50 small font-monospace">Invoice #{{ sale.invoice_number }}</span>
+      </div>
+
+      <div class="row align-items-center g-3">
+        <div class="col-12 col-sm-6">
+          <div class="text-white-50 small fw-semibold">ESTIMATED DELIVERY TIME</div>
+          <div class="countdown-display" id="etaCountdown">07:42</div>
+          <div class="text-success small fw-bold mt-1">
+            <i class="bi bi-clock-history me-1"></i> Arriving on or before 10-min SLA
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 text-sm-end">
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-light" id="btnNextStage" onclick="advanceStage()">
+              <i class="bi bi-fast-forward-fill me-1 text-warning"></i> Fast-Forward Stage
+            </button>
+            <button type="button" class="btn btn-outline-light" id="btnAutoDemo" onclick="toggleAutoDemo()">
+              <i class="bi bi-play-fill me-1 text-success"></i> Auto Demo
+            </button>
+          </div>
+          <div class="text-white-50 small mt-1" style="font-size: 0.72rem;">Interactive Quick-Commerce Simulator</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Route Map Simulation Canvas -->
+    <div class="route-map-canvas text-white">
+      <div class="d-flex align-items-center justify-content-between small text-white-50 mb-2">
+        <span><i class="bi bi-building text-success me-1"></i> {{ dark_store.name }}</span>
+        <span><i class="bi bi-house-door text-warning me-1"></i> Customer Doorstep</span>
+      </div>
+
+      <!-- Route track line with animated scooter -->
+      <div class="route-line">
+        <div class="route-progress" id="routeProgress"></div>
+        <div class="scooter-marker" id="scooterMarker">
+          <i class="bi bi-bicycle"></i>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center justify-content-between small">
+        <div class="badge bg-dark border border-secondary text-light">
+          <i class="bi bi-speedometer2 text-info me-1"></i> 28 km/h Speed
+        </div>
+        <div class="badge bg-dark border border-secondary text-warning" id="liveDistanceBadge">
+          <i class="bi bi-geo-alt-fill me-1"></i> 1.1 km away
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-Stage Live Order Progress Timeline -->
+    <div class="card-custom mb-4">
+      <div class="card-header-custom pb-2">
+        <h4 class="fs-6 fw-bold mb-0">Delivery Lifecycle Stages</h4>
+        <span class="badge bg-light text-success border fw-bold" id="currentStageBadge">Stage 2 of 5: Packing</span>
+      </div>
+
+      <div class="p-3" id="timelineContainer">
+        <!-- Stage 1 -->
+        <div class="timeline-step completed" id="stage1">
+          <div class="timeline-dot"><i class="bi bi-check-lg"></i></div>
+          <div>
+            <div class="fw-bold small text-dark">Order Confirmed</div>
+            <div class="text-muted small">Sent to {{ dark_store.name }}</div>
+            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">00:00 • Completed</span>
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="timeline-step active" id="stage2">
+          <div class="timeline-dot"><i class="bi bi-box-seam"></i></div>
+          <div>
+            <div class="fw-bold small text-dark">Picking & Packing Items</div>
+            <div class="text-muted small">Packer: <strong>{{ packer.name }}</strong> ({{ packer.station }})</div>
+            <span class="badge bg-success-subtle text-success border" style="font-size: 0.7rem;">Active Now • SLA 2 mins</span>
+          </div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="timeline-step" id="stage3">
+          <div class="timeline-dot"><i class="bi bi-bicycle"></i></div>
+          <div>
+            <div class="fw-bold small text-dark">Delivery Partner Assigned</div>
+            <div class="text-muted small">Rider: <strong>{{ rider.name }}</strong> ({{ rider.vehicle }})</div>
+            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Pending Handover</span>
+          </div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div class="timeline-step" id="stage4">
+          <div class="timeline-dot"><i class="bi bi-compass"></i></div>
+          <div>
+            <div class="fw-bold small text-dark">Out for Delivery</div>
+            <div class="text-muted small">Navigating toward Indiranagar 100ft Rd</div>
+            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">On the Road</span>
+          </div>
+        </div>
+
+        <!-- Stage 5 -->
+        <div class="timeline-step" id="stage5">
+          <div class="timeline-dot"><i class="bi bi-house-check"></i></div>
+          <div>
+            <div class="fw-bold small text-dark">Delivered at Doorstep</div>
+            <div class="text-muted small">Contactless drop with OTP verification</div>
+            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Final Destination</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Delivery Hero & Itemized Bill -->
+  <div class="col-12 col-lg-5">
+    <!-- Delivery Partner Card -->
+    <div class="card-custom mb-4">
+      <div class="card-header-custom pb-2">
+        <h4 class="fs-6 fw-bold mb-0">Your Delivery Hero</h4>
+        <span class="badge bg-success"><i class="bi bi-star-fill text-warning me-1"></i> {{ rider.rating }}</span>
+      </div>
+
+      <div class="p-3">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 52px; height: 52px;">
+            {{ rider.name[:1] }}
+          </div>
+          <div class="overflow-hidden">
+            <h6 class="fw-bold mb-0">{{ rider.name }}</h6>
+            <div class="text-muted small">{{ rider.vehicle }} • {{ rider.trips }} deliveries</div>
+            <span class="badge bg-light text-success border mt-1" style="font-size: 0.7rem;">
+              <i class="bi bi-shield-check"></i> 100% Vaccinated • Sanitized
+            </span>
+          </div>
+        </div>
+
+        <div class="d-grid gap-2">
+          <a href="tel:{{ rider.phone }}" class="btn btn-outline-green btn-sm rounded-pill fw-semibold">
+            <i class="bi bi-telephone-fill me-1"></i> Call Delivery Partner
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Items & Bill Breakdown -->
+    <div class="card-custom mb-4">
+      <div class="card-header-custom pb-2">
+        <h4 class="fs-6 fw-bold mb-0">Order Summary</h4>
+        <span class="badge bg-light text-dark border">{{ sale.items|length }} items</span>
+      </div>
+
+      <div class="p-3">
+        <!-- Item rows -->
+        <div class="overflow-auto mb-3" style="max-height: 220px;">
+          {% for item in sale.items %}
+          <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+            <div class="d-flex align-items-center gap-2 overflow-hidden">
+              <span class="badge bg-light text-dark border">{{ item.quantity }}x</span>
+              <span class="small text-truncate fw-semibold" title="{{ item.product.name if item.product else 'Product' }}">
+                {{ item.product.name if item.product else 'Product' }}
+              </span>
+            </div>
+            <span class="small fw-bold text-dark">{{ item.line_total|currency }}</span>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Bill Details -->
+        <div class="small">
+          <div class="d-flex justify-content-between text-muted mb-1">
+            <span>Items Subtotal</span>
+            <span>{{ sale.subtotal|currency }}</span>
+          </div>
+          <div class="d-flex justify-content-between text-muted mb-1">
+            <span>Delivery Fee (⚡ 10 mins)</span>
+            <span class="text-success fw-bold">FREE</span>
+          </div>
+          <div class="d-flex justify-content-between text-muted mb-1">
+            <span>Dark Store Handling</span>
+            <span>₹2.00</span>
+          </div>
+          <div class="d-flex justify-content-between text-muted mb-1">
+            <span>Payment Method</span>
+            <span class="badge bg-light text-dark border">{{ sale.payment_method }}</span>
+          </div>
+          <div class="d-flex justify-content-between fw-bold fs-6 border-top pt-2 mt-2">
+            <span>Total Paid</span>
+            <span class="text-success">{{ sale.total_amount|currency }}</span>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+          <a href="{{ url_for('express.store') }}" class="btn btn-outline-secondary btn-sm flex-grow-1">
+            <i class="bi bi-cart-plus me-1"></i> Order More
+          </a>
+          <a href="{{ url_for('sales.receipt', sale_id=sale.sale_id) }}" class="btn btn-outline-green btn-sm flex-grow-1" target="_blank">
+            <i class="bi bi-printer me-1"></i> Invoice PDF
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Live Countdown Timer (starts at 7m 42s)
+  let totalSeconds = 7 * 60 + 42;
+  const countdownEl = document.getElementById('etaCountdown');
+
+  const timerInterval = setInterval(() => {
+    if (totalSeconds > 0) {
+      totalSeconds--;
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      countdownEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    } else {
+      countdownEl.textContent = "00:00";
+      clearInterval(timerInterval);
+    }
+  }, 1000);
+
+  // Stage Simulation Engine
+  let currentStage = 2; // Starts at Packing
+  const stageBadges = [
+    "Stage 1 of 5: Order Confirmed",
+    "Stage 2 of 5: Packing in Dark Store",
+    "Stage 3 of 5: Delivery Partner Assigned",
+    "Stage 4 of 5: Out for Delivery",
+    "Stage 5 of 5: Delivered"
+  ];
+  const stageProgressWidths = ["10%", "35%", "60%", "85%", "100%"];
+  const stageDistances = ["1.8 km", "1.4 km", "1.1 km", "0.4 km", "0.0 km (Arrived)"];
+
+  function updateStageUI() {
+    document.getElementById('currentStageBadge').textContent = stageBadges[currentStage - 1];
+    document.getElementById('routeProgress').style.width = stageProgressWidths[currentStage - 1];
+    document.getElementById('scooterMarker').style.left = stageProgressWidths[currentStage - 1];
+    document.getElementById('liveDistanceBadge').innerHTML = `<i class="bi bi-geo-alt-fill me-1"></i> ${stageDistances[currentStage - 1]}`;
+
+    for (let i = 1; i <= 5; i++) {
+      const step = document.getElementById(`stage${i}`);
+      step.classList.remove('completed', 'active');
+      if (i < currentStage) {
+        step.classList.add('completed');
+      } else if (i === currentStage) {
+        step.classList.add('active');
+      }
+    }
+
+    if (currentStage === 5) {
+      countdownEl.textContent = "DELIVERED";
+      countdownEl.style.color = "#00E676";
+      clearInterval(timerInterval);
+    }
+  }
+
+  function advanceStage() {
+    if (currentStage < 5) {
+      currentStage++;
+      updateStageUI();
+    } else {
+      // Loop back for demo
+      currentStage = 1;
+      updateStageUI();
+    }
+  }
+
+  let autoDemoInterval = null;
+  function toggleAutoDemo() {
+    const btn = document.getElementById('btnAutoDemo');
+    if (autoDemoInterval) {
+      clearInterval(autoDemoInterval);
+      autoDemoInterval = null;
+      btn.innerHTML = `<i class="bi bi-play-fill me-1 text-success"></i> Auto Demo`;
+    } else {
+      btn.innerHTML = `<i class="bi bi-pause-fill me-1 text-warning"></i> Pause Demo`;
+      autoDemoInterval = setInterval(() => {
+        advanceStage();
+      }, 3000);
+    }
+  }
+</script>
+{% endblock %}

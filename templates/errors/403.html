@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied (403){% endblock %}
+{% block page_title %}Access Denied{% endblock %}
+{% block page_subtitle %}You do not have permission to view this resource{% endblock %}
+
+{% block content %}
+<div class="card-custom text-center py-5">
+  <div class="text-danger mb-3" style="font-size: 3.5rem;">
+    <i class="bi bi-shield-slash"></i>
+  </div>
+  <h2 class="fw-bold mb-2">403 — Unauthorized Access</h2>
+  <p class="text-secondary mx-auto" style="max-width: 480px;">
+    The page or administrative operation you attempted to access requires higher privileges than your current role grants.
+  </p>
+  <div class="mt-4 d-flex justify-content-center gap-3">
+    <a href="{{ url_for('pos.index') }}" class="btn btn-outline-green">
+      <i class="bi bi-cart3 me-1"></i> Go to Point of Sale
+    </a>
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-green">
+      <i class="bi bi-grid me-1"></i> Store Dashboard
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

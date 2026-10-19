@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Management — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Inventory Control & Restocking{% endblock %}
+{% block page_subtitle %}Live stock levels, asset valuation, restocking, and physical audit adjustments{% endblock %}
+
+{% block content %}
+<!-- Inventory Valuation & Status Summary Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Total Stock Units</span>
+        <div class="kpi-icon-wrapper kpi-icon-green">
+          <i class="bi bi-boxes"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ summary.total_units }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Across {{ summary.total_products }} active SKUs</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Retail Asset Value</span>
+        <div class="kpi-icon-wrapper kpi-icon-blue">
+          <i class="bi bi-currency-rupee"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ summary.retail_value|currency }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Selling price valuation</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Cost Asset Value</span>
+        <div class="kpi-icon-wrapper kpi-icon-amber">
+          <i class="bi bi-piggy-bank"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ summary.cost_value|currency }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Procurement cost valuation</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Critical Alerts</span>
+        <div class="kpi-icon-wrapper kpi-icon-red">
+          <i class="bi bi-bell"></i>
+        </div>
+      </div>
+      <div class="kpi-value text-danger">{{ summary.low_stock_count + summary.expired_count + summary.near_expiry_count }}</div>
+      <div class="kpi-comparison">
+        <span class="text-danger fw-semibold">{{ summary.low_stock_count }} Low</span> ·
+        <span class="text-warning fw-semibold">{{ summary.near_expiry_count }} Near Exp</span> ·
+        <span class="text-danger fw-semibold">{{ summary.expired_count }} Exp</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Navigation Filter Tabs & Actions -->
+<div class="card-custom p-3 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <!-- Filter tabs -->
+    <div class="d-flex align-items-center gap-2">
+      <div class="btn-group btn-group-sm" role="group">
+        <a href="{{ url_for('inventory.index', filter='all') }}" class="btn {% if status_filter == 'all' %}btn-green{% else %}btn-outline-secondary{% endif %}">All Inventory</a>
+        <a href="{{ url_for('inventory.index', filter='low_stock') }}" class="btn {% if status_filter == 'low_stock' %}btn-green{% else %}btn-outline-secondary{% endif %}">
+          Low Stock <span class="badge bg-warning text-dark ms-1">{{ summary.low_stock_count }}</span>
+        </a>
+        <a href="{{ url_for('inventory.index', filter='expiring_soon') }}" class="btn {% if status_filter == 'expiring_soon' %}btn-green{% else %}btn-outline-secondary{% endif %}">
+          Expiring Soon <span class="badge bg-danger ms-1">{{ summary.near_expiry_count }}</span>
+        </a>
+        <a href="{{ url_for('inventory.index', filter='expired') }}" class="btn {% if status_filter == 'expired' %}btn-green{% else %}btn-outline-secondary{% endif %}">
+          Expired <span class="badge bg-secondary ms-1">{{ summary.expired_count }}</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Search input & Action link -->
+    <div class="d-flex align-items-center gap-2">
+      <form method="GET" action="{{ url_for('inventory.index') }}" class="d-flex gap-2">
+        <input type="hidden" name="filter" value="{{ status_filter }}">
+        <div class="input-group input-group-sm">
+          <input type="text" name="search" class="form-control form-control-custom" placeholder="Search product..." value="{{ search }}">
+          <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+        </div>
+      </form>
+      <a href="{{ url_for('inventory.movements') }}" class="btn btn-sm btn-outline-secondary text-nowrap">
+        <i class="bi bi-journal-text me-1"></i> Movement Log
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Inventory Stock Table -->
+<div class="card-custom p-0 overflow-hidden mb-4">
+  <div class="table-responsive">
+    <table class="table-custom mb-0">
+      <thead>
+        <tr>
+          <th>SKU / Product</th>
+          <th>Category</th>
+          <th>Supplier</th>
+          <th class="text-center">Current Stock</th>
+          <th class="text-center">Reorder Lvl</th>
+          <th>Stock Health</th>
+          <th>Expiry Date</th>
+          <th>Expiry Status</th>
+          <th class="text-end">Stock Operations</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td>
+            <a href="{{ url_for('products.details', product_id=p.product_id) }}" class="fw-semibold text-dark text-decoration-none">
+              {{ p.name }}
+            </a>
+            <div class="text-muted small font-monospace">{{ p.sku }}</div>
+          </td>
+          <td><span class="badge bg-light text-dark border">{{ p.category }}</span></td>
+          <td class="small text-muted">{{ p.supplier.name if p.supplier else 'Direct' }}</td>
+          <td class="text-center fw-bold {% if p.stock_qty <= 0 %}text-danger{% elif p.stock_qty <= p.reorder_level %}text-warning{% else %}text-dark{% endif %}">
+            {{ p.stock_qty }}
+          </td>
+          <td class="text-center text-muted small">{{ p.reorder_level }}</td>
+          <td>
+            {% if p.stock_qty <= 0 %}
+              <span class="badge-custom badge-out-of-stock"><i class="bi bi-x-circle"></i> Out of Stock</span>
+            {% elif p.stock_qty <= p.reorder_level %}
+              <span class="badge-custom badge-low-stock"><i class="bi bi-exclamation-triangle"></i> Low Stock</span>
+            {% else %}
+              <span class="badge-custom badge-in-stock"><i class="bi bi-check-circle"></i> Healthy</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ p.expiry_date.strftime('%d-%b-%Y') if p.expiry_date else '—' }}</td>
+          <td>
+            {% if p.expiry_status == 'expired' %}
+              <span class="badge-custom badge-expired">Expired</span>
+            {% elif p.expiry_status == 'today' %}
+              <span class="badge-custom badge-expired">Expires Today</span>
+            {% elif p.expiry_status in ('within_7', 'within_15') %}
+              <span class="badge-custom badge-near-expiry">{{ p.days_to_expiry }}d left</span>
+            {% elif p.expiry_status == 'safe' %}
+              <span class="badge-custom badge-safe">Safe</span>
+            {% else %}
+              <span class="text-muted small">N/A</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <div class="d-inline-flex gap-1">
+              <!-- Restock Trigger Button -->
+              <button type="button" class="btn btn-sm btn-green py-1 px-2"
+                      data-bs-toggle="modal" data-bs-target="#restockModal"
+                      data-id="{{ p.product_id }}" data-name="{{ p.name }}" data-stock="{{ p.stock_qty }}"
+                      title="Add Stock">
+                <i class="bi bi-plus-lg me-1"></i> Restock
+              </button>
+              <!-- Audit Adjust Button -->
+              <button type="button" class="btn btn-sm btn-light border py-1 px-2"
+                      data-bs-toggle="modal" data-bs-target="#adjustModal"
+                      data-id="{{ p.product_id }}" data-name="{{ p.name }}" data-stock="{{ p.stock_qty }}"
+                      title="Physical Stock Adjustment">
+                <i class="bi bi-sliders"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9" class="text-center text-muted py-5">
+            <i class="bi bi-boxes fs-2 d-block mb-2"></i>
+            No inventory records found under this filter.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+  <div class="p-3 border-top d-flex align-items-center justify-content-between">
+    <div class="text-muted small">
+      Page {{ pagination.page }} of {{ pagination.pages }}
+    </div>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('inventory.index', page=pagination.prev_num, filter=status_filter, search=search) }}">Previous</a>
+      </li>
+      <li class="page-item active"><span class="page-link">{{ pagination.page }}</span></li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('inventory.index', page=pagination.next_num, filter=status_filter, search=search) }}">Next</a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Restock Modal -->
+<div class="modal fade" id="restockModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow-lg">
+      <form method="POST" action="{{ url_for('inventory.restock') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="product_id" id="restockProdId">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Restock Inventory</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Product</label>
+            <div id="restockProdName" class="fw-bold fs-6 text-dark">Royal Gala Apples</div>
+            <div class="text-muted small">Current stock in database: <span id="restockProdCurrentStock" class="fw-semibold">15</span> units</div>
+          </div>
+          <div class="mb-3">
+            <label for="restockQuantity" class="form-label small fw-semibold">Quantity to Add <span class="text-danger">*</span></label>
+            <input type="number" min="1" class="form-control form-control-custom" id="restockQuantity" name="quantity" required placeholder="e.g. 50">
+          </div>
+          <div class="mb-3">
+            <label for="restockReference" class="form-label small fw-semibold">Purchase Order / Delivery Reference</label>
+            <input type="text" class="form-control form-control-custom" id="restockReference" name="reference" placeholder="e.g. PO-2026-004">
+          </div>
+          <div class="mb-0">
+            <label for="restockNotes" class="form-label small fw-semibold">Notes</label>
+            <textarea class="form-control form-control-custom" id="restockNotes" name="notes" rows="2" placeholder="Optional notes..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-green">Confirm & Add Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Physical Adjustment Modal -->
+<div class="modal fade" id="adjustModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content border-0 shadow-lg">
+      <form method="POST" action="{{ url_for('inventory.adjust') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="product_id" id="adjustProdId">
+        <div class="modal-header">
+          <h5 class="modal-title fw-bold">Physical Count Adjustment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Product</label>
+            <div id="adjustProdName" class="fw-bold fs-6 text-dark">Product Name</div>
+            <div class="text-muted small">Current recorded stock: <span id="adjustProdCurrentStock" class="fw-semibold">15</span> units</div>
+          </div>
+          <div class="mb-3">
+            <label for="adjustQuantity" class="form-label small fw-semibold">New Accurate Physical Count <span class="text-danger">*</span></label>
+            <input type="number" min="0" class="form-control form-control-custom" id="adjustQuantity" name="new_quantity" required placeholder="0">
+            <div class="form-text">System will compute the delta and log an inventory adjustment audit record.</div>
+          </div>
+          <div class="mb-3">
+            <label for="adjustReason" class="form-label small fw-semibold">Reason for Adjustment</label>
+            <select class="form-select form-control-custom" id="adjustReason" name="reason">
+              <option value="Physical Stock Audit">Physical Stock Audit / Count</option>
+              <option value="Damaged / Spoilage">Damaged / Spoilage Write-Off</option>
+              <option value="Expired Stock Removal">Expired Stock Removal</option>
+              <option value="Inventory Discrepancy Correction">Discrepancy Correction</option>
+            </select>
+          </div>
+          <div class="mb-0">
+            <label for="adjustNotes" class="form-label small fw-semibold">Notes</label>
+            <textarea class="form-control form-control-custom" id="adjustNotes" name="notes" rows="2" placeholder="Auditor notes..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-sm btn-warning">Apply Stock Adjustment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Populate Restock Modal
+  const restockModal = document.getElementById('restockModal');
+  if (restockModal) {
+    restockModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      document.getElementById('restockProdId').value = button.getAttribute('data-id');
+      document.getElementById('restockProdName').textContent = button.getAttribute('data-name');
+      document.getElementById('restockProdCurrentStock').textContent = button.getAttribute('data-stock');
+      document.getElementById('restockQuantity').value = '';
+    });
+  }
+
+  // Populate Adjust Modal
+  const adjustModal = document.getElementById('adjustModal');
+  if (adjustModal) {
+    adjustModal.addEventListener('show.bs.modal', function(event) {
+      const button = event.relatedTarget;
+      document.getElementById('adjustProdId').value = button.getAttribute('data-id');
+      document.getElementById('adjustProdName').textContent = button.getAttribute('data-name');
+      document.getElementById('adjustProdCurrentStock').textContent = button.getAttribute('data-stock');
+      document.getElementById('adjustQuantity').value = button.getAttribute('data-stock');
+    });
+  }
+</script>
+{% endblock %}

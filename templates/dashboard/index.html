@@ -1,0 +1,742 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Store Analytics Dashboard{% endblock %}
+{% block page_subtitle %}Live revenue metrics, stock surveillance, and transaction telemetry{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="card-custom py-2 px-3 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-secondary small fw-semibold"><i class="bi bi-calendar3 me-1"></i>Period:</span>
+      <div class="btn-group btn-group-sm" role="group">
+        <a href="{{ url_for('dashboard.index', range='today') }}" class="btn {% if current_range == 'today' %}btn-green{% else %}btn-outline-secondary{% endif %}">Today</a>
+        <a href="{{ url_for('dashboard.index', range='last_7_days') }}" class="btn {% if current_range == 'last_7_days' %}btn-green{% else %}btn-outline-secondary{% endif %}">7 Days</a>
+        <a href="{{ url_for('dashboard.index', range='last_30_days') }}" class="btn {% if current_range == 'last_30_days' %}btn-green{% else %}btn-outline-secondary{% endif %}">30 Days</a>
+        <a href="{{ url_for('dashboard.index', range='this_month') }}" class="btn {% if current_range == 'this_month' %}btn-green{% else %}btn-outline-secondary{% endif %}">This Month</a>
+      </div>
+    </div>
+
+    <div class="text-secondary small">
+      Showing records for: <strong class="text-dark">{{ kpis.period_label }}</strong>
+    </div>
+  </div>
+</div>
+
+<!-- Top KPI Cards Grid -->
+<div class="row g-3 mb-4">
+  <!-- Total Revenue -->
+  <div class="col-12 col-sm-6 col-xl-2">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Total Revenue</span>
+        <div class="kpi-icon-wrapper kpi-icon-green">
+          <i class="bi bi-currency-rupee"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ kpis.total_revenue|currency }}</div>
+      <div class="kpi-comparison">
+        {% if kpis.revenue_change_pct is not none %}
+          {% if kpis.revenue_change_pct >= 0 %}
+            <span class="kpi-trend-up"><i class="bi bi-arrow-up-short"></i>+{{ kpis.revenue_change_pct }}%</span>
+          {% else %}
+            <span class="kpi-trend-down"><i class="bi bi-arrow-down-short"></i>{{ kpis.revenue_change_pct }}%</span>
+          {% endif %}
+          <span class="text-muted">vs prev</span>
+        {% else %}
+          <span class="kpi-trend-neutral">Baseline period</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Total Bills -->
+  <div class="col-12 col-sm-6 col-xl-2">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Total Bills</span>
+        <div class="kpi-icon-wrapper kpi-icon-blue">
+          <i class="bi bi-receipt-cutoff"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ kpis.total_bills }}</div>
+      <div class="kpi-comparison">
+        {% if kpis.bills_change_pct is not none %}
+          {% if kpis.bills_change_pct >= 0 %}
+            <span class="kpi-trend-up"><i class="bi bi-arrow-up-short"></i>+{{ kpis.bills_change_pct }}%</span>
+          {% else %}
+            <span class="kpi-trend-down"><i class="bi bi-arrow-down-short"></i>{{ kpis.bills_change_pct }}%</span>
+          {% endif %}
+          <span class="text-muted">vs prev</span>
+        {% else %}
+          <span class="kpi-trend-neutral">Transactions</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Avg Bill Value -->
+  <div class="col-12 col-sm-6 col-xl-2">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Avg Bill Value</span>
+        <div class="kpi-icon-wrapper kpi-icon-green">
+          <i class="bi bi-calculator"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ kpis.average_bill_value|currency }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Basket average</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Products -->
+  <div class="col-12 col-sm-6 col-xl-2">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Catalog Size</span>
+        <div class="kpi-icon-wrapper kpi-icon-blue">
+          <i class="bi bi-box-seam"></i>
+        </div>
+      </div>
+      <div class="kpi-value">{{ kpis.total_products }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Active items</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Low Stock -->
+  <div class="col-12 col-sm-6 col-xl-2">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Low Stock</span>
+        <div class="kpi-icon-wrapper kpi-icon-amber">
+          <i class="bi bi-exclamation-triangle"></i>
+        </div>
+      </div>
+      <div class="kpi-value {% if kpis.low_stock_count > 0 %}text-warning{% endif %}">{{ kpis.low_stock_count }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">≤ Reorder level</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Near Expiry -->
+  <div class="col-12 col-sm-6 col-xl-2">
+    <div class="kpi-card">
+      <div class="kpi-header">
+        <span class="kpi-title">Near Expiry</span>
+        <div class="kpi-icon-wrapper kpi-icon-red">
+          <i class="bi bi-hourglass-bottom"></i>
+        </div>
+      </div>
+      <div class="kpi-value {% if kpis.near_expiry_count > 0 %}text-danger{% endif %}">{{ kpis.near_expiry_count }}</div>
+      <div class="kpi-comparison">
+        <span class="text-muted">Within 15 days</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Charts Section -->
+<div class="row g-4 mb-4">
+  <!-- Revenue Trend Chart -->
+  <div class="col-12 col-xl-8">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div>
+          <h3>Sales Revenue & Volume Trend</h3>
+          <p class="text-secondary small mb-0">Daily performance trajectory over the selected timeframe</p>
+        </div>
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn btn-outline-secondary active" id="btnTrendRev">Revenue</button>
+          <button type="button" class="btn btn-outline-secondary" id="btnTrendVol">Units</button>
+        </div>
+      </div>
+      <div id="salesTrendPlot" style="height: 320px; width: 100%;"></div>
+    </div>
+  </div>
+
+  <!-- Category Performance -->
+  <div class="col-12 col-xl-4">
+    <div class="card-custom h-100 mb-0 d-flex flex-column">
+      <div class="card-header-custom pb-2">
+        <div>
+          <h3 class="mb-0">Category Breakdown</h3>
+          <p class="text-secondary small mb-0" id="pieSubtitle">Revenue distribution by category</p>
+        </div>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Metric Toggle">
+          <button type="button" class="btn btn-outline-secondary active" id="btnPieRev" title="View by Sales Revenue (₹)">Revenue</button>
+          <button type="button" class="btn btn-outline-secondary" id="btnPieUnits" title="View by Units Sold">Units</button>
+        </div>
+      </div>
+
+      <!-- Chart Container with Center Donut Plot -->
+      <div class="position-relative flex-grow-1" style="min-height: 290px;">
+        <div id="categoryDonutPlot" style="height: 290px; width: 100%;"></div>
+      </div>
+
+      <!-- Interactive Slice Detail / Drilldown Callout -->
+      <div id="pieDetailBox" class="p-2 px-3 mt-2 rounded bg-light border d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2 overflow-hidden">
+          <span id="pieDetailDot" class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background: #16865B;"></span>
+          <div class="overflow-hidden">
+            <span class="fw-bold small text-dark d-block text-truncate" id="pieDetailCategory">Hover or click a slice</span>
+            <span class="text-muted" style="font-size: 0.72rem;" id="pieDetailStats">Click slice to isolate & view in catalog</span>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+          <a href="#" id="pieCatalogLink" class="btn btn-sm btn-link text-success p-0 fw-semibold text-decoration-none d-none" style="font-size: 0.78rem;">
+            View Items <i class="bi bi-arrow-right"></i>
+          </a>
+          <button type="button" id="btnResetPie" class="btn btn-sm btn-link text-muted p-0 ms-2 text-decoration-none d-none" title="Reset Selection" style="font-size: 0.75rem;">
+            <i class="bi bi-arrow-counterclockwise"></i> Reset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Middle Section: Top Products & Recent Transactions -->
+<div class="row g-4 mb-4">
+  <!-- Top Selling Products -->
+  <div class="col-12 col-xl-6">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div>
+          <h3>Top Performing Products</h3>
+          <p class="text-secondary small mb-0">Highest grossing items in selected period</p>
+        </div>
+        <a href="{{ url_for('analytics.index') }}" class="btn btn-sm btn-outline-green">Full Analytics</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Category</th>
+              <th class="text-center">Units Sold</th>
+              <th class="text-end">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in top_products %}
+            <tr>
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  {% if p.image_path %}
+                    <img src="{{ p.image_path }}" class="product-table-thumb" style="width: 34px; height: 34px;" alt="{{ p.name }}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=80&q=75';">
+                  {% else %}
+                    <div class="product-table-thumb d-flex align-items-center justify-content-center text-muted bg-light" style="width: 34px; height: 34px; font-size: 0.8rem;">
+                      <i class="bi bi-basket"></i>
+                    </div>
+                  {% endif %}
+                  <span class="fw-semibold text-dark text-truncate" style="max-width: 180px;" title="{{ p.name }}">{{ p.name }}</span>
+                </div>
+              </td>
+              <td><span class="badge bg-light text-dark border">{{ p.category }}</span></td>
+              <td class="text-center">{{ p.units_sold }}</td>
+              <td class="text-end fw-bold text-success">{{ p.revenue|currency }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">No completed sales recorded in this period.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Transactions -->
+  <div class="col-12 col-xl-6">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div>
+          <h3>Recent Transactions</h3>
+          <p class="text-secondary small mb-0">Latest completed checkout sessions</p>
+        </div>
+        <a href="{{ url_for('sales.index') }}" class="btn btn-sm btn-outline-green">All Sales</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Time</th>
+              <th>Cashier</th>
+              <th>Method</th>
+              <th class="text-end">Total</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in recent_sales %}
+            <tr>
+              <td class="fw-semibold font-monospace small">{{ s.invoice_number }}</td>
+              <td class="text-muted small">{{ s.sale_time.strftime('%H:%M') if s.sale_time else '' }}</td>
+              <td>{{ s.cashier.full_name }}</td>
+              <td><span class="badge bg-light text-secondary border">{{ s.payment_method }}</span></td>
+              <td class="text-end fw-bold">{{ s.total_amount|currency }}</td>
+              <td class="text-center">
+                <a href="{{ url_for('sales.receipt', sale_id=s.sale_id) }}" class="btn btn-sm btn-light border py-0 px-2" title="Print Receipt">
+                  <i class="bi bi-printer"></i>
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted py-4">No transactions found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Surveillance Section: Low Stock & Expiry Alerts -->
+<div class="row g-4">
+  <!-- Low Stock Alerts -->
+  <div class="col-12 col-xl-6">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+          <div>
+            <h3>Low-Stock Surveillance</h3>
+            <p class="text-secondary small mb-0">Products at or below their reorder threshold</p>
+          </div>
+        </div>
+        <a href="{{ url_for('inventory.index', filter='low_stock') }}" class="btn btn-sm btn-outline-secondary">Inventory</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>SKU / Product</th>
+              <th class="text-center">Current</th>
+              <th class="text-center">Reorder Lvl</th>
+              <th>Status</th>
+              <th class="text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in low_stock_list %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ item.name }}</div>
+                <div class="text-muted small font-monospace">{{ item.sku }}</div>
+              </td>
+              <td class="text-center fw-bold {% if item.stock_qty == 0 %}text-danger{% else %}text-warning{% endif %}">
+                {{ item.stock_qty }}
+              </td>
+              <td class="text-center text-muted">{{ item.reorder_level }}</td>
+              <td>
+                {% if item.stock_qty == 0 %}
+                  <span class="badge-custom badge-out-of-stock">Out of Stock</span>
+                {% else %}
+                  <span class="badge-custom badge-low-stock">Low Stock</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                <a href="{{ url_for('products.edit', product_id=item.product_id) }}" class="btn btn-sm btn-outline-green py-0 px-2">Edit</a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-success py-4">
+                <i class="bi bi-check-circle me-1"></i> All products maintain optimal stock levels!
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Near Expiry Alerts -->
+  <div class="col-12 col-xl-6">
+    <div class="card-custom h-100 mb-0">
+      <div class="card-header-custom">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-hourglass-split text-danger fs-5"></i>
+          <div>
+            <h3>Expiry Surveillance</h3>
+            <p class="text-secondary small mb-0">Products approaching shelf-life expiration</p>
+          </div>
+        </div>
+        <a href="{{ url_for('inventory.index', filter='expiring_soon') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Expiry Date</th>
+              <th>Days Left</th>
+              <th class="text-center">Stock</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in near_expiry_list %}
+            <tr>
+              <td class="fw-semibold">{{ item.name }}</td>
+              <td>{{ item.expiry_date.strftime('%d %b %Y') if item.expiry_date else 'N/A' }}</td>
+              <td>
+                {% if item.days_to_expiry < 0 %}
+                  <span class="text-danger fw-bold">Expired ({{ item.days_to_expiry|abs }}d ago)</span>
+                {% elif item.days_to_expiry == 0 %}
+                  <span class="text-danger fw-bold">Expires Today</span>
+                {% else %}
+                  <span class="text-warning fw-semibold">{{ item.days_to_expiry }} days</span>
+                {% endif %}
+              </td>
+              <td class="text-center">{{ item.stock_qty }}</td>
+              <td>
+                {% if item.expiry_status == 'expired' %}
+                  <span class="badge-custom badge-expired">Expired</span>
+                {% else %}
+                  <span class="badge-custom badge-near-expiry">Near Expiry</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="text-center text-success py-4">
+                <i class="bi bi-check-circle me-1"></i> No products approaching expiry within the next 15 days.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const trendDates = {{ trend_data.labels|tojson }};
+  const trendRevenue = {{ trend_data.revenue|tojson }};
+  const trendVolume = {{ trend_data.quantities|tojson }};
+
+  // Sales Trend Plotly Chart
+  const trendTraceRev = {
+    x: trendDates,
+    y: trendRevenue,
+    type: 'scatter',
+    mode: 'lines+markers',
+    name: 'Revenue (₹)',
+    line: { color: '#16865B', width: 2.5, shape: 'spline' },
+    marker: { size: 6, color: '#116B49' },
+    fill: 'tozeroy',
+    fillcolor: 'rgba(22, 134, 91, 0.08)'
+  };
+
+  const trendLayout = {
+    margin: { t: 20, r: 20, l: 50, b: 40 },
+    xaxis: { showgrid: false, tickfont: { size: 10, color: '#737D76' } },
+    yaxis: { gridcolor: '#F0F4F1', tickprefix: '₹', tickfont: { size: 10, color: '#737D76' } },
+    hovermode: 'x unified',
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: 'transparent',
+    autosize: true
+  };
+
+  Plotly.newPlot('salesTrendPlot', [trendTraceRev], trendLayout, { responsive: true, displayModeBar: false });
+
+  // Toggle Revenue vs Volume
+  document.getElementById('btnTrendRev').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('btnTrendVol').classList.remove('active');
+    Plotly.react('salesTrendPlot', [trendTraceRev], trendLayout);
+  });
+
+  document.getElementById('btnTrendVol').addEventListener('click', function() {
+    this.classList.add('active');
+    document.getElementById('btnTrendRev').classList.remove('active');
+    const trendTraceVol = {
+      x: trendDates,
+      y: trendVolume,
+      type: 'bar',
+      name: 'Units Sold',
+      marker: { color: '#4285D4', opacity: 0.85 }
+    };
+    const volLayout = { ...trendLayout, yaxis: { gridcolor: '#F0F4F1', tickprefix: '', tickfont: { size: 10, color: '#737D76' } } };
+    Plotly.react('salesTrendPlot', [trendTraceVol], volLayout);
+  });
+
+  // --- Enhanced Interactive Category Donut Plot ---
+  const categoryData = {{ category_perf|tojson }};
+  const pieColors = [
+    '#16865B', '#27AE60', '#2980B9', '#3498DB', 
+    '#F39C12', '#E67E22', '#8E44AD', '#16A085', 
+    '#D35400', '#2C3E50', '#E74C3C', '#1ABC9C'
+  ];
+
+  let currentMetric = 'revenue'; // 'revenue' or 'units'
+  let selectedSliceIndex = null;
+
+  const catNames = categoryData.map(c => c.category);
+  const totalRevenue = categoryData.reduce((acc, c) => acc + (Number(c.revenue) || 0), 0);
+  const totalUnits = categoryData.reduce((acc, c) => acc + (Number(c.units_sold) || 0), 0);
+
+  function formatCurrency(val) {
+    return '₹' + Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function getCenterAnnotation(title, sub, val) {
+    return {
+      text: `<span style="font-size:11px;letter-spacing:0.5px;color:#737D76;text-transform:uppercase;font-weight:600;">${title}</span><br><b style="font-size:16px;color:#1B2E24;">${val}</b>${sub ? `<br><span style="font-size:11px;color:#16865B;font-weight:600;">${sub}</span>` : ''}`,
+      showarrow: false,
+      font: { family: 'Inter, system-ui, sans-serif' },
+      align: 'center',
+      x: 0.5,
+      y: 0.5
+    };
+  }
+
+  function getDonutTrace(metric, pullArr = null) {
+    if (!categoryData || categoryData.length === 0) {
+      return [{
+        labels: ['No Data'],
+        values: [1],
+        type: 'pie',
+        hole: 0.64,
+        marker: { colors: ['#E2E8F0'] },
+        textinfo: 'label',
+        hoverinfo: 'none'
+      }];
+    }
+
+    const values = metric === 'revenue' 
+      ? categoryData.map(c => c.revenue) 
+      : categoryData.map(c => c.units_sold);
+
+    const customdata = categoryData.map((c, i) => ({
+      category: c.category,
+      revenue: c.revenue,
+      units: c.units_sold,
+      percentage: c.percentage,
+      color: pieColors[i % pieColors.length]
+    }));
+
+    const hovertemplate = metric === 'revenue'
+      ? '<b>%{label}</b><br>Revenue: ₹%{value:,.2f}<br>Share: %{percent}<extra></extra>'
+      : '<b>%{label}</b><br>Units Sold: %{value:,.0f} units<br>Share: %{percent}<extra></extra>';
+
+    return [{
+      labels: catNames,
+      values: values,
+      customdata: customdata,
+      type: 'pie',
+      hole: 0.64,
+      pull: pullArr || new Array(catNames.length).fill(0),
+      marker: {
+        colors: pieColors.slice(0, catNames.length),
+        line: { color: '#ffffff', width: 2 }
+      },
+      textinfo: 'percent',
+      textposition: 'inside',
+      insidetextfont: { color: '#ffffff', size: 11, weight: 'bold' },
+      hovertemplate: hovertemplate
+    }];
+  }
+
+  function getDonutLayout(metric) {
+    const defaultCenter = metric === 'revenue'
+      ? getCenterAnnotation('Total Revenue', '', formatCurrency(totalRevenue))
+      : getCenterAnnotation('Total Volume', '', `${totalUnits.toLocaleString('en-IN')} units`);
+
+    return {
+      margin: { t: 8, r: 8, l: 8, b: 8 },
+      showlegend: false,
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: 'transparent',
+      autosize: true,
+      annotations: [defaultCenter]
+    };
+  }
+
+  const plotEl = document.getElementById('categoryDonutPlot');
+
+  if (categoryData.length > 0) {
+    Plotly.newPlot(plotEl, getDonutTrace(currentMetric), getDonutLayout(currentMetric), {
+      responsive: true,
+      displayModeBar: false
+    });
+
+    // Helper to update the detail callout box beneath chart
+    function updateDetailBox(catItem, isPinned = false) {
+      const dot = document.getElementById('pieDetailDot');
+      const catLabel = document.getElementById('pieDetailCategory');
+      const statsLabel = document.getElementById('pieDetailStats');
+      const link = document.getElementById('pieCatalogLink');
+      const resetBtn = document.getElementById('btnResetPie');
+
+      if (!catItem) {
+        if (dot) dot.style.background = '#16865B';
+        if (catLabel) catLabel.textContent = 'Hover or click a slice';
+        if (statsLabel) statsLabel.textContent = 'Click slice to isolate & view in catalog';
+        if (link) link.classList.add('d-none');
+        if (resetBtn) resetBtn.classList.add('d-none');
+        return;
+      }
+
+      const idx = categoryData.findIndex(c => c.category === catItem.category);
+      const color = pieColors[idx % pieColors.length];
+      if (dot) dot.style.background = color;
+      if (catLabel) {
+        catLabel.innerHTML = `
+          ${catItem.category} 
+          <span class="badge bg-white text-dark border ms-1">${catItem.percentage}%</span>
+          ${isPinned ? '<span class="badge bg-success ms-1">Selected</span>' : ''}
+        `;
+      }
+      if (statsLabel) {
+        statsLabel.textContent = 
+          `Revenue: ${formatCurrency(catItem.revenue)} • Units: ${catItem.units_sold.toLocaleString()} units`;
+      }
+
+      if (link) {
+        link.href = `/products/?category=${encodeURIComponent(catItem.category)}`;
+        link.classList.remove('d-none');
+      }
+
+      if (resetBtn) {
+        if (isPinned) {
+          resetBtn.classList.remove('d-none');
+        } else {
+          resetBtn.classList.add('d-none');
+        }
+      }
+    }
+
+    // Hover Event
+    plotEl.on('plotly_hover', function(data) {
+      if (selectedSliceIndex !== null) return; // Keep pinned state active
+      const pt = data.points[0];
+      const idx = pt.pointNumber;
+      const cat = categoryData[idx];
+      if (!cat) return;
+
+      const subText = `${pt.percent ? (pt.percent * 100).toFixed(1) : cat.percentage}% share`;
+      const valText = currentMetric === 'revenue' ? formatCurrency(cat.revenue) : `${cat.units_sold.toLocaleString()} units`;
+
+      const newAnnotation = getCenterAnnotation(cat.category, subText, valText);
+      Plotly.relayout(plotEl, { annotations: [newAnnotation] });
+      updateDetailBox(cat, false);
+    });
+
+    // Unhover Event
+    plotEl.on('plotly_unhover', function() {
+      if (selectedSliceIndex !== null) return; // Keep pinned state
+      const defaultAnnotation = currentMetric === 'revenue'
+        ? getCenterAnnotation('Total Revenue', '', formatCurrency(totalRevenue))
+        : getCenterAnnotation('Total Volume', '', `${totalUnits.toLocaleString('en-IN')} units`);
+      Plotly.relayout(plotEl, { annotations: [defaultAnnotation] });
+      updateDetailBox(null);
+    });
+
+    // Click / Explode Event
+    plotEl.on('plotly_click', function(data) {
+      const idx = data.points[0].pointNumber;
+      if (selectedSliceIndex === idx) {
+        // Deselect
+        selectedSliceIndex = null;
+        const defaultAnnotation = currentMetric === 'revenue'
+          ? getCenterAnnotation('Total Revenue', '', formatCurrency(totalRevenue))
+          : getCenterAnnotation('Total Volume', '', `${totalUnits.toLocaleString('en-IN')} units`);
+        Plotly.relayout(plotEl, { annotations: [defaultAnnotation] });
+        Plotly.restyle(plotEl, { pull: [new Array(catNames.length).fill(0)] });
+        updateDetailBox(null);
+      } else {
+        // Select & Explode slice
+        selectedSliceIndex = idx;
+        const pullArr = new Array(catNames.length).fill(0);
+        pullArr[idx] = 0.12;
+
+        const cat = categoryData[idx];
+        const subText = `${cat.percentage}% share`;
+        const valText = currentMetric === 'revenue' ? formatCurrency(cat.revenue) : `${cat.units_sold.toLocaleString()} units`;
+
+        const newAnnotation = getCenterAnnotation(cat.category, subText, valText);
+        Plotly.relayout(plotEl, { annotations: [newAnnotation] });
+        Plotly.restyle(plotEl, { pull: [pullArr] });
+        updateDetailBox(cat, true);
+      }
+    });
+
+    // Reset Pie Button Handler
+    const resetBtn = document.getElementById('btnResetPie');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        selectedSliceIndex = null;
+        const defaultAnnotation = currentMetric === 'revenue'
+          ? getCenterAnnotation('Total Revenue', '', formatCurrency(totalRevenue))
+          : getCenterAnnotation('Total Volume', '', `${totalUnits.toLocaleString('en-IN')} units`);
+        Plotly.relayout(plotEl, { annotations: [defaultAnnotation] });
+        Plotly.restyle(plotEl, { pull: [new Array(catNames.length).fill(0)] });
+        updateDetailBox(null);
+      });
+    }
+
+    // Metric Toggle Buttons: Revenue vs Units
+    const btnRev = document.getElementById('btnPieRev');
+    const btnUnits = document.getElementById('btnPieUnits');
+    const subtitle = document.getElementById('pieSubtitle');
+
+    if (btnRev && btnUnits) {
+      btnRev.addEventListener('click', function() {
+        if (currentMetric === 'revenue') return;
+        currentMetric = 'revenue';
+        btnRev.classList.add('active');
+        btnUnits.classList.remove('active');
+        if (subtitle) subtitle.textContent = 'Revenue distribution by category';
+
+        const pullArr = new Array(catNames.length).fill(0);
+        if (selectedSliceIndex !== null) pullArr[selectedSliceIndex] = 0.12;
+
+        Plotly.react(plotEl, getDonutTrace('revenue', pullArr), getDonutLayout('revenue'));
+        if (selectedSliceIndex !== null) {
+          updateDetailBox(categoryData[selectedSliceIndex], true);
+        } else {
+          updateDetailBox(null);
+        }
+      });
+
+      btnUnits.addEventListener('click', function() {
+        if (currentMetric === 'units') return;
+        currentMetric = 'units';
+        btnUnits.classList.add('active');
+        btnRev.classList.remove('active');
+        if (subtitle) subtitle.textContent = 'Volume (units sold) distribution by category';
+
+        const pullArr = new Array(catNames.length).fill(0);
+        if (selectedSliceIndex !== null) pullArr[selectedSliceIndex] = 0.12;
+
+        Plotly.react(plotEl, getDonutTrace('units', pullArr), getDonutLayout('units'));
+        if (selectedSliceIndex !== null) {
+          updateDetailBox(categoryData[selectedSliceIndex], true);
+        } else {
+          updateDetailBox(null);
+        }
+      });
+    }
+  } else {
+    // Empty state
+    Plotly.newPlot(plotEl, getDonutTrace('revenue'), getDonutLayout('revenue'), { responsive: true, displayModeBar: false });
+  }
+</script>
+{% endblock %}

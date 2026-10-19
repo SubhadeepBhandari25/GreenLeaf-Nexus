@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Data Exports — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Reports & Data Export Center{% endblock %}
+{% block page_subtitle %}Generate audit-ready spreadsheets, transaction dumps, and warehouse valuation manifests{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Sales Ledger Export Card -->
+  <div class="col-12 col-md-6">
+    <div class="card-custom h-100">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="brand-logo-icon" style="width: 44px; height: 44px; font-size: 1.35rem; background: var(--light-green); color: var(--primary-green);">
+          <i class="bi bi-file-earmark-spreadsheet"></i>
+        </div>
+        <div>
+          <h4 class="fw-bold fs-6 mb-0">Sales Transactions Export</h4>
+          <span class="text-secondary small">Completed customer orders with tax, discounts, & cashier notes</span>
+        </div>
+      </div>
+
+      <p class="text-secondary small mb-3">
+        Exports complete row-by-row transaction summaries including subtotal, tax amount, discount, grand total, and cashier attribution. All output fields are sanitized against formula injection (CWE-1236).
+      </p>
+
+      <form method="GET" action="{{ url_for('reports.export_sales') }}" class="mb-3">
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold text-secondary">Start Date</label>
+            <input type="date" name="start_date" class="form-control form-control-sm form-control-custom">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold text-secondary">End Date</label>
+            <input type="date" name="end_date" class="form-control form-control-sm form-control-custom">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-green w-100 d-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-download"></i>
+          <span>Download Sales CSV</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Inventory Valuation Export Card -->
+  <div class="col-12 col-md-6">
+    <div class="card-custom h-100">
+      <div class="d-flex align-items-center gap-3 mb-3">
+        <div class="brand-logo-icon" style="width: 44px; height: 44px; font-size: 1.35rem; background: #eef4fd; color: var(--info);">
+          <i class="bi bi-boxes"></i>
+        </div>
+        <div>
+          <h4 class="fw-bold fs-6 mb-0">Product Inventory Export</h4>
+          <span class="text-secondary small">Comprehensive physical stock ledger and valuation</span>
+        </div>
+      </div>
+
+      <p class="text-secondary small mb-3">
+        Download catalog snapshots with current physical quantities, reorder thresholds, supplier tags, expiry timelines, and retail vs cost asset valuations.
+      </p>
+
+      <div class="d-flex flex-column gap-2 mt-4">
+        <a href="{{ url_for('reports.export_inventory', type='all') }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-table me-2"></i> Complete Inventory Manifest</span>
+          <span class="badge bg-light text-dark border">{{ inventory_summary.total_products }} SKUs</span>
+        </a>
+
+        <a href="{{ url_for('reports.export_inventory', type='low_stock') }}" class="btn btn-outline-warning text-dark d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-exclamation-triangle me-2 text-warning"></i> Low-Stock Replenishment Report</span>
+          <span class="badge bg-warning text-dark">{{ inventory_summary.low_stock_count }} items</span>
+        </a>
+
+        <a href="{{ url_for('reports.export_inventory', type='expiry_alerts') }}" class="btn btn-outline-danger d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-hourglass-bottom me-2 text-danger"></i> Expired & Near-Expiry Audit</span>
+          <span class="badge bg-danger">{{ inventory_summary.expired_count + inventory_summary.near_expiry_count }} items</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

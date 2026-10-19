@@ -1,0 +1,86 @@
+<!-- ======================================================================= -->
+<!-- FRAMER PAGE TRANSITION STUDIO: SCENE-TWO OPENING ANIMATION            -->
+<!-- Inspired by https://pagetransition.framer.website/scene-two            -->
+<!-- Displays "WELCOME TO GREENLEAF NEXUS" with Multi-Panel Curtain Splits -->
+<!-- ======================================================================= -->
+
+<div id="nexusSceneTwoOverlay" class="nexus-transition-container d-none" aria-hidden="true">
+  <!-- 5 Staggered Shutter Curtain Strips -->
+  <div class="nexus-shutter-curtains">
+    <div class="nexus-strip nexus-strip-1"></div>
+    <div class="nexus-strip nexus-strip-2"></div>
+    <div class="nexus-strip nexus-strip-3"></div>
+    <div class="nexus-strip nexus-strip-4"></div>
+    <div class="nexus-strip nexus-strip-5"></div>
+  </div>
+
+  <!-- Ambient Light Core & Grid Matrix -->
+  <div class="nexus-mesh-glow"></div>
+  <div class="nexus-grid-lines"></div>
+
+  <!-- Center Stage Content -->
+  <div class="nexus-stage">
+    <!-- Top Meta Badges (Scene 02) -->
+    <div class="nexus-header-badge">
+      <div class="nexus-badge-chip">
+        <span class="nexus-dot-pulse"></span>
+        <span>SCENE 02 // NEXUS ACTIVATION</span>
+      </div>
+      <div class="nexus-badge-divider"></div>
+      <div class="nexus-badge-label">
+        <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+        <span>10-MIN QUICK-COMMERCE ENGINE</span>
+      </div>
+    </div>
+
+    <!-- Official Logo Emblem -->
+    <div class="text-center mb-3">
+      <img src="{{ url_for('static', filename='img/greenleaf-nexus-logo.png') }}" 
+           alt="GreenLeaf Nexus Official Logo" 
+           class="nexus-hero-logo shadow-lg rounded-circle"
+           style="width: 105px; height: 105px; object-fit: contain; background: #ffffff; padding: 6px; border: 3px solid #00E676; box-shadow: 0 0 35px rgba(0, 230, 118, 0.5);">
+    </div>
+
+    <!-- Massive Grand Headline -->
+    <div class="nexus-typography-wrap">
+      <div class="nexus-sub-lead">A STUDY IN MOTION • PAGE TRANSITION STUDIO</div>
+      <div class="nexus-title-pre">WELCOME TO</div>
+      <h1 class="nexus-title-main">GREENLEAF NEXUS</h1>
+      <p class="nexus-tagline">Smart Inventory, Point-of-Sale & Sales Analytics Platform</p>
+    </div>
+
+    <!-- Live System Diagnostic Bar -->
+    <div class="nexus-diagnostic-card">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="nexus-diag-item">
+          <i class="bi bi-cpu text-success me-1"></i>
+          <span>MATRIX STATUS: <strong>ONLINE</strong></span>
+        </div>
+        <div class="nexus-diag-item">
+          <i class="bi bi-box-seam text-info me-1"></i>
+          <span>SKUS IN DARK STORE: <strong>61</strong></span>
+        </div>
+        <div class="nexus-diag-item">
+          <i class="bi bi-bicycle text-warning me-1"></i>
+          <span>FLEET RIDERS: <strong>14 ACTIVE</strong></span>
+        </div>
+      </div>
+      <div class="nexus-progress-track">
+        <div class="nexus-progress-fill" id="nexusProgressFill"></div>
+      </div>
+      <div class="d-flex justify-content-between mt-1 text-muted small" style="font-size: 0.72rem;">
+        <span>Framer Spring Motion Easing: cubic-bezier(0.85, 0, 0.15, 1)</span>
+        <span id="nexusPercentText">100% READY</span>
+      </div>
+    </div>
+
+    <!-- Action Prompt / Skip Button -->
+    <div class="nexus-actions">
+      <button type="button" class="btn btn-nexus-enter" id="btnEnterNexus">
+        <span>Enter Nexus</span>
+        <i class="bi bi-arrow-right ms-2"></i>
+      </button>
+      <span class="nexus-skip-hint">Press <strong>ESC</strong> or click anywhere to open</span>
+    </div>
+  </div>
+</div>

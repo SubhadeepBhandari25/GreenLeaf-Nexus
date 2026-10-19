@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Found (404){% endblock %}
+{% block page_title %}Page Not Found{% endblock %}
+{% block page_subtitle %}The requested URL could not be located on this server{% endblock %}
+
+{% block content %}
+<div class="card-custom text-center py-5">
+  <div class="text-warning mb-3" style="font-size: 3.5rem;">
+    <i class="bi bi-question-circle"></i>
+  </div>
+  <h2 class="fw-bold mb-2">404 — Resource Not Found</h2>
+  <p class="text-secondary mx-auto" style="max-width: 480px;">
+    The item, invoice, product, or URL you were looking for doesn't exist or may have been relocated.
+  </p>
+  <div class="mt-4">
+    <a href="{{ url_for('pos.index') }}" class="btn btn-green">
+      <i class="bi bi-arrow-left me-1"></i> Return to Point of Sale
+    </a>
+  </div>
+</div>
+{% endblock %}

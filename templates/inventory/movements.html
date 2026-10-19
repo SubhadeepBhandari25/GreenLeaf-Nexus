@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Inventory Movement Ledger — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Inventory Movement Ledger{% endblock %}
+{% block page_subtitle %}Complete audit trail of all warehouse restocks, point-of-sale deductions, and adjustments{% endblock %}
+
+{% block content %}
+<!-- Filter Bar -->
+<div class="card-custom p-3 mb-4">
+  <form method="GET" action="{{ url_for('inventory.movements') }}" class="d-flex flex-wrap align-items-center gap-2">
+    <div class="input-group input-group-sm" style="max-width: 280px;">
+      <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
+      <input type="text" name="search" class="form-control form-control-custom border-start-0" placeholder="Search product, SKU, reference..." value="{{ search }}">
+    </div>
+
+    <select name="type" class="form-select form-select-sm form-control-custom" style="max-width: 180px;">
+      <option value="">All Movement Types</option>
+      <option value="sale" {% if movement_type == 'sale' %}selected{% endif %}>POS Sale</option>
+      <option value="restock" {% if movement_type == 'restock' %}selected{% endif %}>Restock</option>
+      <option value="adjustment" {% if movement_type == 'adjustment' %}selected{% endif %}>Physical Adjustment</option>
+      <option value="initial" {% if movement_type == 'initial' %}selected{% endif %}>Initial Opening Stock</option>
+    </select>
+
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+    {% if search or movement_type %}
+      <a href="{{ url_for('inventory.movements') }}" class="btn btn-sm btn-link text-muted">Reset</a>
+    {% endif %}
+
+    <div class="ms-auto">
+      <a href="{{ url_for('inventory.index') }}" class="btn btn-sm btn-outline-green">
+        <i class="bi bi-arrow-left me-1"></i> Stock Levels
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Ledger Table -->
+<div class="card-custom p-0 overflow-hidden mb-4">
+  <div class="table-responsive">
+    <table class="table-custom mb-0">
+      <thead>
+        <tr>
+          <th>Date & Time</th>
+          <th>Product / SKU</th>
+          <th>Action Type</th>
+          <th class="text-center">Previous Stock</th>
+          <th class="text-center">Quantity Change</th>
+          <th class="text-center">Resulting Stock</th>
+          <th>Reference</th>
+          <th>Responsible User</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in movements %}
+        <tr>
+          <td class="small">{{ m.created_at.strftime('%d-%b-%Y %H:%M:%S') }}</td>
+          <td>
+            <a href="{{ url_for('products.details', product_id=m.product_id) }}" class="fw-semibold text-dark text-decoration-none">
+              {{ m.product.name }}
+            </a>
+            <div class="text-muted small font-monospace">{{ m.product.sku }}</div>
+          </td>
+          <td>
+            {% if m.movement_type == 'sale' %}
+              <span class="badge bg-info-subtle text-info border">POS Sale</span>
+            {% elif m.movement_type == 'restock' %}
+              <span class="badge bg-success-subtle text-success border">Restock</span>
+            {% elif m.movement_type == 'adjustment' %}
+              <span class="badge bg-warning-subtle text-warning border">Adjustment</span>
+            {% elif m.movement_type == 'initial' %}
+              <span class="badge bg-secondary-subtle text-secondary border">Initial Stock</span>
+            {% else %}
+              <span class="badge bg-light text-dark border">{{ m.movement_type }}</span>
+            {% endif %}
+          </td>
+          <td class="text-center text-muted">{{ m.previous_stock }}</td>
+          <td class="text-center fw-bold {% if m.quantity_change > 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if m.quantity_change > 0 %}+{{ m.quantity_change }}{% else %}{{ m.quantity_change }}{% endif %}
+          </td>
+          <td class="text-center fw-bold">{{ m.resulting_stock }}</td>
+          <td class="small font-monospace text-muted">{{ m.reference or m.notes or '—' }}</td>
+          <td class="small">{{ m.user.full_name if m.user else 'System' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center text-muted py-5">No movement records match the query.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if pagination.pages > 1 %}
+  <div class="p-3 border-top d-flex align-items-center justify-content-between">
+    <div class="text-muted small">
+      Showing page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} movements)
+    </div>
+    <ul class="pagination pagination-sm mb-0">
+      <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('inventory.movements', page=pagination.prev_num, search=search, type=movement_type) }}">Previous</a>
+      </li>
+      <li class="page-item active"><span class="page-link">{{ pagination.page }}</span></li>
+      <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('inventory.movements', page=pagination.next_num, search=search, type=movement_type) }}">Next</a>
+      </li>
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

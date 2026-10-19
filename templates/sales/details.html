@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Invoice #{{ sale.invoice_number }} — GreenLeaf Nexus{% endblock %}
+{% block page_title %}Invoice Details: {{ sale.invoice_number }}{% endblock %}
+{% block page_subtitle %}Completed transaction audit details and line items snapshot{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+  <!-- Left: Metadata -->
+  <div class="col-12 col-lg-4">
+    <div class="card-custom">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <span class="badge bg-success-subtle text-success border border-success-subtle">Completed</span>
+        <span class="badge bg-light text-dark border">{{ sale.payment_method }}</span>
+      </div>
+
+      <h4 class="fw-bold fs-6 font-monospace mb-1">{{ sale.invoice_number }}</h4>
+      <div class="text-secondary small mb-3">
+        {{ sale.sale_date.strftime('%d-%b-%Y') }} at {{ sale.sale_time.strftime('%H:%M:%S') if sale.sale_time else '' }}
+      </div>
+
+      <div class="list-group list-group-flush small mb-3">
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-secondary">Cashier:</span>
+          <span class="fw-semibold">{{ sale.cashier.full_name }}</span>
+        </div>
+        {% if sale.customer_name %}
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-secondary">Customer:</span>
+          <span>{{ sale.customer_name }}</span>
+        </div>
+        {% endif %}
+        {% if sale.customer_phone %}
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-secondary">Phone:</span>
+          <span>{{ sale.customer_phone }}</span>
+        </div>
+        {% endif %}
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span class="text-secondary">Subtotal:</span>
+          <span>{{ sale.subtotal|currency }}</span>
+        </div>
+        <div class="list-group-item px-0 d-flex justify-content-between text-danger">
+          <span>Discount:</span>
+          <span>-{{ sale.discount_amount|currency }}</span>
+        </div>
+        <div class="list-group-item px-0 d-flex justify-content-between">
+          <span>Tax (VAT/GST):</span>
+          <span>{{ sale.tax_amount|currency }}</span>
+        </div>
+        <div class="list-group-item px-0 d-flex justify-content-between fs-6 fw-bold border-top pt-2">
+          <span>Grand Total:</span>
+          <span class="text-success">{{ sale.total_amount|currency }}</span>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('sales.receipt', sale_id=sale.sale_id) }}" target="_blank" class="btn btn-sm btn-green flex-fill">
+          <i class="bi bi-printer me-1"></i> Print Receipt
+        </a>
+        <a href="{{ url_for('sales.index') }}" class="btn btn-sm btn-light border">Back</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Line Items Snapshot -->
+  <div class="col-12 col-lg-8">
+    <div class="card-custom p-0 overflow-hidden">
+      <div class="p-3 border-bottom">
+        <h4 class="fs-6 fw-bold mb-0">Itemized Purchased Products</h4>
+        <span class="text-secondary small">Stored price & name snapshots ensure historic receipts remain immutable</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table-custom mb-0">
+          <thead>
+            <tr>
+              <th>Item Snapshot</th>
+              <th class="text-center">Quantity</th>
+              <th class="text-end">Unit Price</th>
+              <th class="text-end">Discount</th>
+              <th class="text-end">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in sale.items %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ item.product_name_snapshot }}</div>
+                {% if item.product %}
+                  <a href="{{ url_for('products.details', product_id=item.product.product_id) }}" class="text-muted small text-decoration-none">
+                    SKU: {{ item.product.sku }}
+                  </a>
+                {% endif %}
+              </td>
+              <td class="text-center fw-bold">{{ item.quantity }}</td>
+              <td class="text-end text-muted small">{{ item.unit_price|currency }}</td>
+              <td class="text-end text-danger small">
+                {% if item.discount_amount > 0 %}-{{ item.discount_amount|currency }}{% else %}—{% endif %}
+              </td>
+              <td class="text-end fw-bold text-success">{{ item.line_total|currency }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
