@@ -1,27 +1,78 @@
 {% extends "base.html" %}
 
-{% block title %}Access Denied (403){% endblock %}
+{% block title %}Access Denied (403) — {{ STORE_NAME }}{% endblock %}
 {% block page_title %}Access Denied{% endblock %}
-{% block page_subtitle %}You do not have permission to view this resource{% endblock %}
+{% block page_subtitle %}You do not have permission to view or execute this resource{% endblock %}
 
 {% block content %}
-<div class="card-custom text-center py-5">
-  <div class="text-danger mb-3" style="font-size: 3.5rem;">
-    <i class="bi bi-shield-slash"></i>
-  </div>
-  <h2 class="fw-bold mb-2">403 — Unauthorized Access</h2>
-  <p class="text-secondary mx-auto" style="max-width: 480px;">
-    The page or administrative operation you attempted to access requires higher privileges than your current role grants.
-  </p>
-  <div class="mt-4 d-flex justify-content-center gap-3">
-    <a href="{{ url_for('pos.index') }}" class="btn btn-outline-green">
-      <i class="bi bi-cart3 me-1"></i> Go to Point of Sale
-    </a>
-    {% if current_user.is_authenticated and current_user.is_admin %}
-    <a href="{{ url_for('dashboard.index') }}" class="btn btn-green">
-      <i class="bi bi-grid me-1"></i> Store Dashboard
-    </a>
-    {% endif %}
+<div class="row justify-content-center py-4">
+  <div class="col-12 col-lg-8 col-xl-7">
+    <div class="card-custom text-center p-4 p-md-5 position-relative overflow-hidden shadow-sm">
+      <!-- Decorative background glow -->
+      <div style="position: absolute; top: -60px; right: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(217, 76, 76, 0.12) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; pointer-events: none;"></div>
+      <div style="position: absolute; bottom: -60px; left: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(22, 134, 91, 0.1) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; pointer-events: none;"></div>
+
+      <!-- Error Badge -->
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: rgba(217, 76, 76, 0.12); color: #c53030; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px;">
+        <i class="bi bi-shield-lock-fill"></i>
+        <span>HTTP 403 &bull; ROLE RESTRICTION</span>
+      </div>
+
+      <!-- Icon Display -->
+      <div class="mb-3 position-relative">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 88px; height: 88px; background: linear-gradient(135deg, rgba(217, 76, 76, 0.15), rgba(240, 165, 43, 0.15)); color: var(--danger); font-size: 2.75rem;">
+          <i class="bi bi-shield-slash"></i>
+        </div>
+      </div>
+
+      <h2 class="fw-bold text-dark mb-2">Access Denied — Unauthorized</h2>
+      <p class="text-secondary mx-auto mb-4" style="max-width: 500px; font-size: 0.95rem; line-height: 1.6;">
+        The section or operation you requested requires elevated administrative permissions. Your current active role 
+        (<strong class="text-dark">{{ current_user.role if current_user.is_authenticated else 'Guest' }}</strong>) 
+        does not have access to this action.
+      </p>
+
+      <!-- Action Buttons -->
+      <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('pos.index') }}" class="btn btn-green d-inline-flex align-items-center gap-2">
+            <i class="bi bi-cart3"></i>
+            <span>Return to Point of Sale</span>
+          </a>
+          {% if current_user.is_admin %}
+          <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-green d-inline-flex align-items-center gap-2">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Store Dashboard</span>
+          </a>
+          {% endif %}
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-green d-inline-flex align-items-center gap-2">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span>Sign In with Admin Account</span>
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('express.store') }}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+          <i class="bi bi-lightning-charge text-warning"></i>
+          <span>Instant Store</span>
+        </a>
+
+        <button type="button" class="btn btn-light border d-inline-flex align-items-center gap-1" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'">
+          <i class="bi bi-arrow-left"></i>
+          <span>Go Back</span>
+        </button>
+      </div>
+
+      <!-- Info note -->
+      <div class="bg-light p-3 rounded-3 text-start mx-auto w-100" style="max-width: 520px; border: 1px solid var(--border-color);">
+        <div class="d-flex align-items-start gap-2">
+          <i class="bi bi-info-circle text-primary mt-1"></i>
+          <div class="small text-secondary">
+            Need administrative clearance to manage products, suppliers, or financial reports? Contact your store manager or system administrator to adjust your account role in <strong>User Management</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

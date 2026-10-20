@@ -54,7 +54,7 @@
       {% endif %}
 
       <!-- Quick-Commerce Instant Store -->
-      <a href="{{ url_for('express.store') }}" class="nav-link-custom {% if request.endpoint.startswith('express.store') %}active{% endif %}">
+      <a href="{{ url_for('express.store') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('express.store') %}active{% endif %}">
         <i class="bi bi-lightning-charge-fill text-warning"></i>
         <span>Instant Store</span>
         <span class="badge bg-success ms-auto" style="font-size: 0.65rem;">10 MINS</span>
@@ -62,24 +62,24 @@
 
       <!-- Dark Store Fulfillment & Packing -->
       {% if current_user.is_authenticated and current_user.is_admin %}
-      <a href="{{ url_for('express.picker_console') }}" class="nav-link-custom {% if request.endpoint.startswith('express.picker') %}active{% endif %}">
+      <a href="{{ url_for('express.picker_console') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('express.picker') %}active{% endif %}">
         <i class="bi bi-building-gear"></i>
         <span>Dark Store Hub</span>
       </a>
       {% endif %}
 
-      <a href="{{ url_for('pos.index') }}" class="nav-link-custom {% if request.endpoint.startswith('pos.') %}active{% endif %}">
+      <a href="{{ url_for('pos.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('pos.') %}active{% endif %}">
         <i class="bi bi-cart3"></i>
         <span>Point of Sale</span>
       </a>
 
       {% if current_user.is_authenticated and current_user.is_admin %}
-      <a href="{{ url_for('products.index') }}" class="nav-link-custom {% if request.endpoint.startswith('products.') %}active{% endif %}">
+      <a href="{{ url_for('products.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('products.') %}active{% endif %}">
         <i class="bi bi-box-seam"></i>
         <span>Products</span>
       </a>
 
-      <a href="{{ url_for('inventory.index') }}" class="nav-link-custom {% if request.endpoint.startswith('inventory.') %}active{% endif %}">
+      <a href="{{ url_for('inventory.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('inventory.') %}active{% endif %}">
         <i class="bi bi-boxes"></i>
         <span>Inventory</span>
         {% if LOW_STOCK_GLOBAL_COUNT > 0 %}
@@ -87,30 +87,30 @@
         {% endif %}
       </a>
 
-      <a href="{{ url_for('suppliers.index') }}" class="nav-link-custom {% if request.endpoint.startswith('suppliers.') %}active{% endif %}">
+      <a href="{{ url_for('suppliers.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('suppliers.') %}active{% endif %}">
         <i class="bi bi-truck"></i>
         <span>Suppliers</span>
       </a>
       {% endif %}
 
-      <a href="{{ url_for('sales.index') }}" class="nav-link-custom {% if request.endpoint.startswith('sales.') %}active{% endif %}">
+      <a href="{{ url_for('sales.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('sales.') %}active{% endif %}">
         <i class="bi bi-receipt"></i>
         <span>Sales History</span>
       </a>
 
       {% if current_user.is_authenticated and current_user.is_admin %}
-      <a href="{{ url_for('analytics.index') }}" class="nav-link-custom {% if request.endpoint.startswith('analytics.') %}active{% endif %}">
+      <a href="{{ url_for('analytics.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('analytics.') %}active{% endif %}">
         <i class="bi bi-graph-up-arrow"></i>
         <span>Analytics</span>
       </a>
 
-      <a href="{{ url_for('reports.index') }}" class="nav-link-custom {% if request.endpoint.startswith('reports.') %}active{% endif %}">
+      <a href="{{ url_for('reports.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('reports.') %}active{% endif %}">
         <i class="bi bi-file-earmark-bar-graph"></i>
         <span>Reports</span>
       </a>
 
       <div class="nav-section-title mt-3">Administration</div>
-      <a href="{{ url_for('users.index') }}" class="nav-link-custom {% if request.endpoint.startswith('users.') %}active{% endif %}">
+      <a href="{{ url_for('users.index') }}" class="nav-link-custom {% if request.endpoint and request.endpoint.startswith('users.') %}active{% endif %}">
         <i class="bi bi-people"></i>
         <span>User Management</span>
       </a>

@@ -1,22 +1,77 @@
 {% extends "base.html" %}
 
-{% block title %}Page Not Found (404){% endblock %}
+{% block title %}Page Not Found (404) — {{ STORE_NAME }}{% endblock %}
 {% block page_title %}Page Not Found{% endblock %}
-{% block page_subtitle %}The requested URL could not be located on this server{% endblock %}
+{% block page_subtitle %}The requested resource could not be located on this server{% endblock %}
 
 {% block content %}
-<div class="card-custom text-center py-5">
-  <div class="text-warning mb-3" style="font-size: 3.5rem;">
-    <i class="bi bi-question-circle"></i>
-  </div>
-  <h2 class="fw-bold mb-2">404 — Resource Not Found</h2>
-  <p class="text-secondary mx-auto" style="max-width: 480px;">
-    The item, invoice, product, or URL you were looking for doesn't exist or may have been relocated.
-  </p>
-  <div class="mt-4">
-    <a href="{{ url_for('pos.index') }}" class="btn btn-green">
-      <i class="bi bi-arrow-left me-1"></i> Return to Point of Sale
-    </a>
+<div class="row justify-content-center py-4">
+  <div class="col-12 col-lg-8 col-xl-7">
+    <div class="card-custom text-center p-4 p-md-5 position-relative overflow-hidden shadow-sm">
+      <!-- Decorative background glow -->
+      <div style="position: absolute; top: -60px; right: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(22, 134, 91, 0.12) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; pointer-events: none;"></div>
+      <div style="position: absolute; bottom: -60px; left: -60px; width: 180px; height: 180px; background: radial-gradient(circle, rgba(240, 165, 43, 0.12) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; pointer-events: none;"></div>
+
+      <!-- Error Badge -->
+      <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background: rgba(240, 165, 43, 0.12); color: #b7791f; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px;">
+        <i class="bi bi-compass"></i>
+        <span>HTTP 404 &bull; MISSING ROUTE</span>
+      </div>
+
+      <!-- Icon Display -->
+      <div class="mb-3 position-relative">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-circle" style="width: 88px; height: 88px; background: linear-gradient(135deg, rgba(240, 165, 43, 0.15), rgba(22, 134, 91, 0.15)); color: var(--primary-green); font-size: 2.75rem;">
+          <i class="bi bi-search"></i>
+        </div>
+      </div>
+
+      <h2 class="fw-bold text-dark mb-2">404 — Resource Not Found</h2>
+      <p class="text-secondary mx-auto mb-4" style="max-width: 500px; font-size: 0.95rem; line-height: 1.6;">
+        The page, SKU, invoice record, or endpoint you requested cannot be found or may have been archived. Please check the URL or use the quick links below.
+      </p>
+
+      <!-- Quick Action Buttons -->
+      <div class="d-flex flex-wrap justify-content-center gap-2 mb-4">
+        {% if current_user.is_authenticated %}
+          {% if current_user.is_admin %}
+          <a href="{{ url_for('dashboard.index') }}" class="btn btn-green d-inline-flex align-items-center gap-2">
+            <i class="bi bi-grid-1x2"></i>
+            <span>Store Dashboard</span>
+          </a>
+          {% endif %}
+          <a href="{{ url_for('pos.index') }}" class="btn btn-outline-green d-inline-flex align-items-center gap-2">
+            <i class="bi bi-cart3"></i>
+            <span>Point of Sale</span>
+          </a>
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-green d-inline-flex align-items-center gap-2">
+            <i class="bi bi-box-arrow-in-right"></i>
+            <span>Sign In to Nexus</span>
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('express.store') }}" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
+          <i class="bi bi-lightning-charge text-warning"></i>
+          <span>Instant 10m Store</span>
+        </a>
+
+        <button type="button" class="btn btn-light border d-inline-flex align-items-center gap-1" onclick="window.history.length > 1 ? window.history.back() : window.location.href='/'">
+          <i class="bi bi-arrow-left"></i>
+          <span>Go Back</span>
+        </button>
+      </div>
+
+      <!-- Quick Search Helper -->
+      <div class="bg-light p-3 rounded-3 text-start mx-auto w-100" style="max-width: 520px; border: 1px solid var(--border-color);">
+        <label for="errorSearchInput" class="form-label small fw-semibold text-secondary mb-1">
+          <i class="bi bi-search me-1"></i> Looking for a specific SKU or item?
+        </label>
+        <form method="GET" action="{{ url_for('products.index') if current_user.is_authenticated and current_user.is_admin else url_for('express.store') }}" class="d-flex gap-2">
+          <input type="text" id="errorSearchInput" name="search" class="form-control form-control-sm form-control-custom" placeholder="Search by product name, SKU, or barcode...">
+          <button type="submit" class="btn btn-sm btn-green px-3">Search</button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

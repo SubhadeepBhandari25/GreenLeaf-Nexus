@@ -6,7 +6,7 @@
 [![SQLAlchemy](https://img.shields.io/badge/ORM-SQLAlchemy-red.svg?style=flat)](https://www.sqlalchemy.org/)
 [![Pandas](https://img.shields.io/badge/Analytics-Pandas_3.0-150458.svg?style=flat&logo=pandas)](https://pandas.pydata.org/)
 [![Plotly](https://img.shields.io/badge/Visualization-Plotly-3F4F75.svg?style=flat&logo=plotly)](https://plotly.com/)
-[![Tests](https://img.shields.io/badge/Test_Suite-45%20Passed-success.svg?style=flat)]()
+[![Tests](https://img.shields.io/badge/Test_Suite-47%20Passed-success.svg?style=flat)]()
 [![API Database](https://img.shields.io/badge/API_Database-Open_Food_Facts-blue.svg?style=flat)](https://world.openfoodfacts.org/)
 
 > **Brand Identity**: GreenLeaf Grocers  
