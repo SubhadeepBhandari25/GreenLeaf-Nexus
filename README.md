@@ -6,7 +6,7 @@
 [![SQLAlchemy](https://img.shields.io/badge/ORM-SQLAlchemy-red.svg?style=flat)](https://www.sqlalchemy.org/)
 [![Pandas](https://img.shields.io/badge/Analytics-Pandas_3.0-150458.svg?style=flat&logo=pandas)](https://pandas.pydata.org/)
 [![Plotly](https://img.shields.io/badge/Visualization-Plotly-3F4F75.svg?style=flat&logo=plotly)](https://plotly.com/)
-[![Tests](https://img.shields.io/badge/Test_Suite-34%20Passed-success.svg?style=flat)]()
+[![Tests](https://img.shields.io/badge/Test_Suite-45%20Passed-success.svg?style=flat)]()
 [![API Database](https://img.shields.io/badge/API_Database-Open_Food_Facts-blue.svg?style=flat)](https://world.openfoodfacts.org/)
 
 > **Brand Identity**: GreenLeaf Grocers  
@@ -478,15 +478,22 @@ When exporting sales and inventory spreadsheets, GreenLeaf Nexus sanitizes all u
 │   └── js/
 │       ├── app.js             # Global navigation & alert auto-dismiss
 │       └── pos.js             # Reactive POS cart engine & checkout API client
-└── tests/
-    ├── conftest.py            # Test database & test client fixtures
-    ├── test_auth.py           # Login, logout, inactive user rejection
-    ├── test_products.py       # SKU uniqueness, price & stock validations
-    ├── test_billing.py        # Calculations, discounts, stock deduction, rollback
-    ├── test_inventory.py      # Low stock, expiry surveillance, restocking
-    ├── test_analytics.py      # KPIs, empty periods, top products
-    ├── test_csv.py            # CSV imports, row error logs, CWE-1236 sanitization
-    └── test_security.py       # Role-based access control & 403 enforcement
+├── tests/
+│   ├── conftest.py            # Test database & test client fixtures
+│   ├── test_auth.py           # Login, logout, inactive user rejection
+│   ├── test_products.py       # SKU uniqueness, price & stock validations
+│   ├── test_billing.py        # Calculations, discounts, stock deduction, rollback
+│   ├── test_inventory.py      # Low stock, expiry surveillance, restocking
+│   ├── test_analytics.py      # KPIs, empty periods, top products
+│   ├── test_csv.py            # CSV imports, row error logs, CWE-1236 sanitization
+│   ├── test_security.py       # Role-based access control & 403 enforcement
+│   ├── test_blinkit_express.py # Quick-commerce express delivery & POS catalog tests
+│   ├── test_indian_snacks.py  # Regional snack catalog & image caching validation
+│   └── test_interactive_pie.py # Interactive Plotly pie charts & category share tests
+├── api/
+│   └── index.py               # Vercel serverless WSGI entrypoint with /tmp sqlite adapter
+├── vercel.json                # Vercel cloud deployment specification
+└── streamlit_app.py           # Standalone interactive Streamlit executive dashboard
 ```
 
 ---
@@ -514,4 +521,40 @@ GreenLeaf Nexus directly connects to the **Open Food Facts Global Product Databa
 
 ---
 
+## 14. Alternative Interfaces & Serverless Cloud Deployment
+
+### 14.1 Standalone Executive Streamlit Dashboard
+GreenLeaf Nexus includes a companion Streamlit analytics web application for corporate executives and store directors:
+```bash
+# Launch Streamlit interactive analytics dashboard
+streamlit run streamlit_app.py
+```
+- Real-time KPI gauges (Revenue, Gross Margin %, Stock-out Risk).
+- Dynamic time-series filtering by store department and supplier.
+- Interactive Plotly revenue distribution donuts with drill-down views.
+- 7-day automated replenishment quantity calculator based on moving average velocity.
+
+### 14.2 Serverless Deployment (Vercel)
+The system is pre-configured for zero-friction serverless cloud deployment on **Vercel** via `@vercel/python`:
+- **Configuration**: [`vercel.json`](file:///c:/Users/subha/OneDrive/Desktop/Inventory%20&%20Sales%20Management%20System%20with%20Analytics%20Dashboard%20for%20GreenLeaf%20Grocers/vercel.json) maps routes to `api/index.py` with static asset caching.
+- **Runtime Persistence**: In Vercel serverless environments (`VERCEL=1`), the database automatically stages into `/tmp/instance/greenleaf.db` seeded from the pre-populated catalog, enabling live transactions and queries without write failures on immutable serverless containers.
+```bash
+# Deploy to Vercel
+npm install -g vercel
+vercel deploy --prod
+```
+
+### 14.3 Automated Verification & Test Suite
+Run the 45-test test suite and live database route verification script:
+```bash
+# Run isolated unit & integration tests
+pytest -v
+
+# Run full live database & API verification
+python verify_live.py
+```
+
+---
+
 *GreenLeaf Nexus — Developed with precision for modern grocery retail operations.*
+
