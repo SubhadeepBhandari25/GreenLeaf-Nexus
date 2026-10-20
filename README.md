@@ -269,25 +269,7 @@ Open your web browser and navigate to:
 http://127.0.0.1:5000
 ```
 
-#### Option B: Run the Interactive Streamlit Analytics Dashboard
-```powershell
-streamlit run streamlit_app.py
-```
-Open your web browser and navigate to:
-```
-http://localhost:8501
-```
-
-### Step 7: Cloud Hosting & Deployment
-
-#### ☁️ Streamlit Community Cloud Hosting
-1. Push your repository to GitHub: `https://github.com/SubhadeepBhandari25/GreenLeaf-Nexus`.
-2. Go to [share.streamlit.io](https://share.streamlit.io) and log in with your GitHub account.
-3. Click **"New app"** and select:
-   - **Repository**: `SubhadeepBhandari25/GreenLeaf-Nexus`
-   - **Branch**: `main`
-   - **Main file path**: `streamlit_app.py` (or `app.py`)
-4. Click **Deploy!** The cloud environment will install `requirements.txt` and auto-initialize the database with demo products, sales trajectories, and POS terminal.
+### Step 7: Cloud Hosting & Production Deployment
 
 #### 🚀 Full Flask App Hosting (Render / Railway / Heroku)
 A production `Procfile` is included:
@@ -295,6 +277,7 @@ A production `Procfile` is included:
 web: gunicorn "app:create_app()"
 ```
 - **Render**: Connect repo as a Web Service, Build command: `pip install -r requirements.txt`, Start command: `gunicorn "app:create_app()"`.
+- **Railway / Heroku**: Automatically detects the Python runtime and executes the `Procfile` entrypoint.
 
 ---
 
@@ -310,7 +293,7 @@ web: gunicorn "app:create_app()"
 
 ## 8. Automated Testing
 
-GreenLeaf Nexus includes **30 automated test cases** implemented with `pytest` covering authentication, product catalog rules, transactional billing, inventory surveillance, Pandas analytics, CSV data pipelines, and role-based security.
+GreenLeaf Nexus includes **47 automated test cases** implemented with `pytest` covering authentication, product catalog rules, transactional billing, inventory surveillance, Pandas analytics, CSV data pipelines, Quick-Commerce express fulfillment, and role-based security.
 
 To run the complete automated test suite:
 ```powershell
@@ -492,8 +475,7 @@ When exporting sales and inventory spreadsheets, GreenLeaf Nexus sanitizes all u
 │   └── test_interactive_pie.py # Interactive Plotly pie charts & category share tests
 ├── api/
 │   └── index.py               # Vercel serverless WSGI entrypoint with /tmp sqlite adapter
-├── vercel.json                # Vercel cloud deployment specification
-└── streamlit_app.py           # Standalone interactive Streamlit executive dashboard
+└── vercel.json                # Vercel cloud deployment specification
 ```
 
 ---
@@ -521,20 +503,9 @@ GreenLeaf Nexus directly connects to the **Open Food Facts Global Product Databa
 
 ---
 
-## 14. Alternative Interfaces & Serverless Cloud Deployment
+## 14. Serverless Cloud Deployment & Automated Testing
 
-### 14.1 Standalone Executive Streamlit Dashboard
-GreenLeaf Nexus includes a companion Streamlit analytics web application for corporate executives and store directors:
-```bash
-# Launch Streamlit interactive analytics dashboard
-streamlit run streamlit_app.py
-```
-- Real-time KPI gauges (Revenue, Gross Margin %, Stock-out Risk).
-- Dynamic time-series filtering by store department and supplier.
-- Interactive Plotly revenue distribution donuts with drill-down views.
-- 7-day automated replenishment quantity calculator based on moving average velocity.
-
-### 14.2 Serverless Deployment (Vercel)
+### 14.1 Serverless Deployment (Vercel)
 The system is pre-configured for zero-friction serverless cloud deployment on **Vercel** via `@vercel/python`:
 - **Configuration**: [`vercel.json`](file:///c:/Users/subha/OneDrive/Desktop/Inventory%20&%20Sales%20Management%20System%20with%20Analytics%20Dashboard%20for%20GreenLeaf%20Grocers/vercel.json) maps routes to `api/index.py` with static asset caching.
 - **Runtime Persistence**: In Vercel serverless environments (`VERCEL=1`), the database automatically stages into `/tmp/instance/greenleaf.db` seeded from the pre-populated catalog, enabling live transactions and queries without write failures on immutable serverless containers.
@@ -544,8 +515,8 @@ npm install -g vercel
 vercel deploy --prod
 ```
 
-### 14.3 Automated Verification & Test Suite
-Run the 45-test test suite and live database route verification script:
+### 14.2 Automated Verification & Test Suite
+Run the 47-test test suite and live database route verification script:
 ```bash
 # Run isolated unit & integration tests
 pytest -v

@@ -117,17 +117,6 @@ def create_app(config_name=None):
 
 
 if __name__ == "__main__":
-    # If launched within Streamlit Cloud or via 'streamlit run app.py'
-    try:
-        import streamlit.runtime as _rt
-        if _rt.exists():
-            import streamlit as _st
-            import streamlit_app
-            if hasattr(streamlit_app, "main"):
-                streamlit_app.main()
-            _st.stop()
-    except (ImportError, Exception):
-        pass
-
     app = create_app()
     app.run(debug=True, host="127.0.0.1", port=5000)
+
