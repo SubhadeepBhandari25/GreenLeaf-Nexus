@@ -1,5 +1,18 @@
 import os
+import sys
 from pathlib import Path
+
+# Streamlit Cloud compatibility bridge: if executed via `streamlit run app.py`
+try:
+    from streamlit.runtime.scriptrunner import get_script_run_ctx
+    if get_script_run_ctx() is not None:
+        import streamlit as st
+        import streamlit_app
+        streamlit_app.main()
+        st.stop()
+except Exception:
+    pass
+
 from flask import Flask, render_template
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
@@ -117,6 +130,16 @@ def create_app(config_name=None):
 
 
 if __name__ == "__main__":
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        if get_script_run_ctx() is not None:
+            import streamlit as st
+            import streamlit_app
+            streamlit_app.main()
+            st.stop()
+    except Exception:
+        pass
+
     app = create_app()
     app.run(debug=True, host="127.0.0.1", port=5000)
 
