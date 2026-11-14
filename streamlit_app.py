@@ -1,4 +1,4 @@
-﻿import os
+import os
 import sys
 from pathlib import Path
 from datetime import date, datetime, timedelta
@@ -143,9 +143,8 @@ st.markdown(
 
 
 # ---------------------------------------------------------
-# Singleton Flask Application & Database Context
+# Flask Application & Database Context
 # ---------------------------------------------------------
-@st.cache_resource
 def get_app():
     flask_app = create_app("development")
     return flask_app
@@ -157,7 +156,10 @@ flask_app = get_app()
 def init_database_if_needed():
     """Initializes tables and seeds initial demo data if database is empty."""
     with flask_app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception:
+            pass
         try:
             prod_count = Product.query.count()
         except Exception:
