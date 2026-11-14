@@ -28,6 +28,15 @@ else:
     EXPORTS_FOLDER_DEFAULT = BASE_DIR / "exports"
 
 
+def get_database_uri():
+    db_url = os.environ.get("DATABASE_URL")
+    if db_url:
+        if db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        return db_url
+    return DEFAULT_DATABASE_URI
+
+
 class Config:
     """Base application configuration."""
     SECRET_KEY = os.environ.get("SECRET_KEY", "greenleaf-nexus-super-secret-key-2026")
@@ -60,9 +69,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", DEFAULT_DATABASE_URI
-    )
+    SQLALCHEMY_DATABASE_URI = get_database_uri()
 
 
 class TestingConfig(Config):
@@ -75,9 +82,7 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", DEFAULT_DATABASE_URI
-    )
+    SQLALCHEMY_DATABASE_URI = get_database_uri()
 
 
 config = {
