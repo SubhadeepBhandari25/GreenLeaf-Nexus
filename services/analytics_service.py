@@ -405,5 +405,41 @@ class AnalyticsService:
         forecasts.sort(key=lambda x: -x["suggested_replenishment"])
         return forecasts
 
+    @classmethod
+    def get_payment_method_breakdown(cls, range_key="last_30_days", custom_start=None, custom_end=None):
+        """Calculates revenue and transaction counts grouped by payment method."""
+        start_date, end_date = cls.get_date_range_bounds(range_key, custom_start, custom_end)
+
+        results = (
+            db.session.query(
+                Sale.payment_method,
+                func.sum(Sale.total_amount).label("total_revenue"),
+                func.count(Sale.sale_id).label("total_count"),
+            )
+            .filter(
+                Sale.transaction_status == "completed",
+                Sale.sale_date >= start_date,
+                Sale.sale_date <= end_date,
+            )
+            .group_by(Sale.payment_method)
+            .order_by(func.sum(Sale.total_amount).desc())
+            .all()
+        )
+
+        total_rev = sum(float(r[1] or 0) for r in results)
+        data = []
+        for r in results:
+            pm = r[0] or "Cash"
+            rev = float(r[1] or 0)
+            cnt = int(r[2] or 0)
+            share_pct = round((rev / total_rev * 100), 1) if total_rev > 0 else 0.0
+            data.append({
+                "payment_method": pm,
+                "revenue": round(rev, 2),
+                "count": cnt,
+                "share_pct": share_pct,
+            })
+        return data
+
     get_demand_forecast = get_demand_forecast_7days
 

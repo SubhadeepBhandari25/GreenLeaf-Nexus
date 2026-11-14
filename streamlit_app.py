@@ -565,7 +565,10 @@ def render_analytics():
 
         with top_col2:
             st.subheader("💳 Payment Methods Breakdown")
-            pay_data = AnalyticsService.get_payment_method_breakdown(range_key=time_frame)
+            try:
+                pay_data = AnalyticsService.get_payment_method_breakdown(range_key=time_frame)
+            except (AttributeError, Exception):
+                pay_data = []
             if pay_data:
                 df_pay = pd.DataFrame(pay_data)
                 fig_pay = px.pie(
@@ -612,7 +615,12 @@ def render_forecasting():
     st.caption("Calculates 30-day historical moving average daily run-rates and factors in safety stock buffers to recommend replenishment quantities.")
 
     with flask_app.app_context():
-        forecasts = AnalyticsService.get_demand_forecast()
+        try:
+            forecasts = AnalyticsService.get_demand_forecast()
+        except AttributeError:
+            forecasts = getattr(AnalyticsService, "get_demand_forecast_7days", lambda: [])()
+        except Exception:
+            forecasts = []
         if not forecasts:
             st.info("No product demand data available.")
             return
