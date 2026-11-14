@@ -102,4 +102,36 @@ def edit(supplier_id):
 def details(supplier_id):
     supplier = Supplier.query.get_or_404(supplier_id)
     products = supplier.products.filter_by(is_active=True).all()
-    return render_template("suppliers/details.html", supplier=supplier, products=products)
+    
+    total_units = sum(p.stock_qty for p in products)
+    cost_valuation = sum(p.stock_qty * p.cost_price for p in products)
+    retail_valuation = sum(p.stock_qty * p.unit_price for p in products)
+    
+    return render_template(
+        "suppliers/details.html",
+        supplier=supplier,
+        products=products,
+        total_units=total_units,
+        cost_valuation=cost_valuation,
+        retail_valuation=retail_valuation,
+    )
+
+
+@suppliers_bp.route("/<int:supplier_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def delete(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+    linked_count = supplier.products.count()
+    if linked_count > 0:
+        flash(
+            f"Cannot delete supplier '{supplier.name}' because {linked_count} product line(s) are still linked to it. Please reassign or deactivate those products first.",
+            "warning",
+        )
+        return redirect(url_for("suppliers.details", supplier_id=supplier_id))
+
+    name = supplier.name
+    db.session.delete(supplier)
+    db.session.commit()
+    flash(f"Supplier '{name}' was deleted successfully.", "info")
+    return redirect(url_for("suppliers.index"))

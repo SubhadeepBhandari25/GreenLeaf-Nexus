@@ -29,6 +29,10 @@ class Sale(db.Model):
     def total_quantity(self):
         return sum(item.quantity for item in self.items) if self.items else 0
 
+    @property
+    def receipt_number(self):
+        return self.invoice_number
+
     def to_dict(self):
         return {
             "sale_id": self.sale_id,

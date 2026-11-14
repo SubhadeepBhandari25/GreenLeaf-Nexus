@@ -9,7 +9,7 @@
 <div class="card-custom p-3 mb-4">
   <form method="GET" action="{{ url_for('sales.index') }}">
     <div class="row g-2 align-items-center">
-      <div class="col-12 col-md-3">
+      <div class="col-12 {% if current_user.is_admin and cashiers %}col-md-3{% else %}col-md-5{% endif %}">
         <div class="input-group input-group-sm">
           <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
           <input type="text" name="invoice" class="form-control form-control-custom border-start-0 font-monospace" placeholder="Invoice #..." value="{{ search_invoice }}">
@@ -59,6 +59,18 @@
   </form>
 </div>
 
+<!-- Header Action Strip with CSV Export Shortcut -->
+<div class="d-flex align-items-center justify-content-between mb-3 px-1">
+  <div class="small text-muted">
+    <i class="bi bi-shield-check text-success me-1"></i> Immutable finalized transaction ledger
+  </div>
+  {% if current_user.is_admin %}
+  <a href="{{ url_for('reports.export_sales', start_date=start_date, end_date=end_date) }}" class="btn btn-sm btn-outline-secondary" title="Export current date range as CSV">
+    <i class="bi bi-download me-1"></i> Export Sales CSV
+  </a>
+  {% endif %}
+</div>
+
 <!-- Sales Transactions Table -->
 <div class="card-custom p-0 overflow-hidden mb-4">
   <div class="table-responsive">
@@ -89,7 +101,7 @@
             <div>{{ s.sale_date.strftime('%d-%b-%Y') }}</div>
             <div class="text-muted" style="font-size: 0.72rem;">{{ s.sale_time.strftime('%H:%M:%S') if s.sale_time else '' }}</div>
           </td>
-          <td>{{ s.cashier.full_name }}</td>
+          <td>{{ s.cashier.full_name if s.cashier else 'System / Cashier' }}</td>
           <td class="text-center">
             <span class="badge bg-light text-dark border">{{ s.total_quantity }} pcs</span>
           </td>
@@ -99,7 +111,17 @@
           </td>
           <td class="text-end text-muted small">{{ s.tax_amount|currency }}</td>
           <td class="text-end fw-bold text-success">{{ s.total_amount|currency }}</td>
-          <td><span class="badge bg-light text-secondary border">{{ s.payment_method }}</span></td>
+          <td>
+            {% if s.payment_method == 'UPI' %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-qr-code me-1"></i>UPI</span>
+            {% elif s.payment_method == 'Card' %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-credit-card me-1"></i>Card</span>
+            {% elif s.payment_method == 'Digital Wallet' %}
+              <span class="badge bg-info-subtle text-info border border-info-subtle"><i class="bi bi-wallet2 me-1"></i>Wallet</span>
+            {% else %}
+              <span class="badge bg-light text-dark border"><i class="bi bi-cash me-1"></i>Cash</span>
+            {% endif %}
+          </td>
           <td class="text-end">
             <div class="d-inline-flex gap-1">
               <a href="{{ url_for('sales.receipt', sale_id=s.sale_id) }}" target="_blank" class="btn btn-sm btn-light border py-1 px-2" title="Print Thermal Receipt">

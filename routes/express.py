@@ -116,7 +116,7 @@ def express_checkout():
     Process instant 10-minute quick commerce checkout.
     Uses authoritative BillingService.process_checkout to deduct stock and create sale.
     """
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data or not data.get("items"):
         return jsonify({"success": False, "error": "Cart is empty."}), 400
 
@@ -125,7 +125,11 @@ def express_checkout():
     customer_phone = data.get("customer_phone", "").strip() or "9876543210"
     delivery_address = data.get("address", "Flat 402, Green Glen Layout, Indiranagar").strip()
     payment_method = data.get("payment_method", "UPI").strip()
+    store_id = data.get("store_id", "DS-04").strip()
     tip_amount = float(data.get("tip_amount", 0.0) or 0.0)
+
+    # Resolve active dark store
+    active_store = next((s for s in DARK_STORES if s["id"] == store_id), DARK_STORES[0])
 
     # Resolve cashier/user id
     user_id = current_user.user_id if current_user.is_authenticated else 1
@@ -134,7 +138,8 @@ def express_checkout():
     packer = random.choice(DARK_STORE_PACKERS)
 
     notes = (
-        f"[Blinkit 10-Min Express] Address: {delivery_address} | "
+        f"[Blinkit 10-Min Express] Store: {active_store['name']} ({active_store['id']}) | "
+        f"Address: {delivery_address} | "
         f"Packer: {packer['name']} ({packer['station']}) | "
         f"Rider: {partner['name']} ({partner['vehicle']}) | "
         f"Tip: ₹{tip_amount:.2f}"
@@ -152,14 +157,20 @@ def express_checkout():
             notes=notes,
         )
 
+        # Include tip in grand total if provided
+        if tip_amount > 0:
+            sale.total_amount = round(sale.total_amount + tip_amount, 2)
+            db.session.commit()
+
         return jsonify({
             "success": True,
             "invoice_number": sale.invoice_number,
             "sale_id": sale.sale_id,
             "total_amount": sale.total_amount,
+            "dark_store": active_store,
             "rider": partner,
             "packer": packer,
-            "eta_minutes": 10,
+            "eta_minutes": active_store.get("sla_mins", 10),
             "redirect_url": url_for("express.track_order", invoice_number=sale.invoice_number),
         })
 
@@ -174,6 +185,13 @@ def express_checkout():
 def track_order(invoice_number):
     """Blinkit real-time 10-minute order tracking and live delivery progression screen."""
     sale = Sale.query.filter_by(invoice_number=invoice_number).first_or_404()
+
+    # Parse dark store from notes if available
+    dark_store_info = DARK_STORES[0]
+    for ds in DARK_STORES:
+        if ds["id"] in (sale.notes or "") or ds["name"] in (sale.notes or ""):
+            dark_store_info = ds
+            break
 
     # Parse rider and packer from notes if available
     rider_info = DELIVERY_PARTNERS[0]
@@ -192,13 +210,16 @@ def track_order(invoice_number):
         sale=sale,
         rider=rider_info,
         packer=packer_info,
-        dark_store=DARK_STORES[0],
+        dark_store=dark_store_info,
     )
 
 
 @express_bp.route("/picker")
 def picker_console():
     """Dark Store Picker Console: Live order queue with 2-minute SLA packing clock."""
+    store_id = request.args.get("store_id", "DS-04").strip()
+    active_store = next((s for s in DARK_STORES if s["id"] == store_id), DARK_STORES[0])
+
     # Fetch recent express sales or today's completed sales
     recent_orders = Sale.query.filter(
         Sale.notes.ilike("%Blinkit%") | Sale.notes.ilike("%Express%")
@@ -211,7 +232,8 @@ def picker_console():
     return render_template(
         "express/picker.html",
         orders=recent_orders,
-        dark_store=DARK_STORES[0],
+        dark_store=active_store,
+        dark_stores=DARK_STORES,
         packers=DARK_STORE_PACKERS,
     )
 
@@ -223,8 +245,9 @@ def dispatch_order(sale_id):
     if not sale:
         return jsonify({"success": False, "error": "Order not found."}), 404
 
-    packer_name = request.json.get("packer", DARK_STORE_PACKERS[0]["name"]) if request.is_json else DARK_STORE_PACKERS[0]["name"]
-    rider_name = request.json.get("rider", DELIVERY_PARTNERS[0]["name"]) if request.is_json else DELIVERY_PARTNERS[0]["name"]
+    payload = request.get_json(silent=True) or {}
+    packer_name = payload.get("packer", DARK_STORE_PACKERS[0]["name"])
+    rider_name = payload.get("rider", DELIVERY_PARTNERS[0]["name"])
 
     time_str = datetime.now().strftime("%H:%M:%S")
     sale.notes = (sale.notes or "") + f" | [DISPATCHED {time_str} by {packer_name} to {rider_name}]"

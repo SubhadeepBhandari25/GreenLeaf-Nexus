@@ -290,7 +290,7 @@ class AnalyticsService:
         return results
 
     @classmethod
-    def get_slow_moving_products(cls, days=30, limit=10):
+    def get_slow_moving_products(cls, days=30, limit=20, threshold_sales=3):
         """Identifies products with zero or minimal sales during the past specified days."""
         cutoff_date = date.today() - timedelta(days=days)
 
@@ -315,24 +315,28 @@ class AnalyticsService:
             qty_sold = sold_stats.get(p.product_id, 0)
             if qty_sold == 0:
                 status_label = "No Sales"
-            elif qty_sold <= 2:
+            elif qty_sold < threshold_sales:
                 status_label = "Critically Slow"
             else:
                 continue
 
+            cost_val = round(float(p.stock_qty * (p.cost_price or 0.0)), 2)
             data.append({
                 "product_id": p.product_id,
                 "sku": p.sku,
                 "name": p.name,
                 "category": p.category,
                 "stock_qty": p.stock_qty,
+                "current_stock": p.stock_qty,
+                "units_sold": qty_sold,
                 "units_sold_30d": qty_sold,
+                "cost_value": cost_val,
                 "status": status_label,
             })
 
         # Sort by units sold ascending, then by current stock descending
         data.sort(key=lambda x: (x["units_sold_30d"], -x["stock_qty"]))
-        return data[:limit]
+        return data[:limit] if limit else data
 
     @classmethod
     def get_demand_forecast_7days(cls):
@@ -400,3 +404,6 @@ class AnalyticsService:
         # Order by highest replenishment need
         forecasts.sort(key=lambda x: -x["suggested_replenishment"])
         return forecasts
+
+    get_demand_forecast = get_demand_forecast_7days
+

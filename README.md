@@ -84,6 +84,7 @@ graph TD
         B --> L[analytics_bp: Pandas BI & 7D Forecast]
         B --> M[reports_bp: Sanitized CSV Exports]
         B --> N[users_bp: Account Management]
+        B --> NX[express_bp: 10-Min Quick-Commerce & Dark Store Hub]
     end
     
     subgraph Service Layer
@@ -253,9 +254,10 @@ Key environment settings inside `.env`:
 - `MAX_DISCOUNT_PERCENT`: Maximum permitted cashier discount percentage (default: `30.0`).
 
 ### Step 5: Seed Demonstration Data
-Execute the deterministic data generator to create **55 distinct products**, **5 wholesale suppliers**, **3 user accounts**, and **520 realistic sales transactions** distributed across the last 4 months:
+Execute the deterministic data generator to create **87 distinct products** (including farm fresh produce, pantry staples, and 26+ authentic Indian snacks & namkeen favorites), **5 wholesale suppliers**, **3 user accounts**, and **520+ realistic sales transactions** distributed across the last 4 months:
 ```powershell
 python seed_data.py
+python populate_indian_snacks.py
 ```
 
 ### Step 6: Start the Application Server
@@ -302,38 +304,55 @@ python -m pytest -v
 
 ### Test Suite Execution Output:
 ```text
-tests/test_analytics.py::test_empty_period_analytics PASSED              [  3%]
-tests/test_analytics.py::test_analytics_with_sales_data PASSED           [  6%]
-tests/test_auth.py::test_valid_admin_login PASSED                        [ 10%]
-tests/test_auth.py::test_valid_cashier_login PASSED                      [ 13%]
-tests/test_auth.py::test_invalid_login_wrong_password PASSED             [ 16%]
-tests/test_auth.py::test_inactive_account_rejected PASSED                [ 20%]
-tests/test_auth.py::test_logout PASSED                                   [ 23%]
-tests/test_billing.py::test_correct_total_calculation PASSED             [ 26%]
-tests/test_billing.py::test_calculation_with_discount PASSED             [ 30%]
-tests/test_billing.py::test_successful_checkout_and_stock_deduction PASSED [ 33%]
-tests/test_billing.py::test_insufficient_stock_rejection_and_rollback PASSED [ 36%]
-tests/test_billing.py::test_empty_cart_rejection PASSED                  [ 40%]
-tests/test_billing.py::test_invalid_discount_rejection PASSED            [ 43%]
-tests/test_csv.py::test_sanitize_csv_cell PASSED                         [ 46%]
-tests/test_csv.py::test_valid_csv_import PASSED                          [ 50%]
-tests/test_csv.py::test_invalid_csv_rows_reported PASSED                 [ 53%]
-tests/test_csv.py::test_csv_export PASSED                                [ 56%]
-tests/test_inventory.py::test_low_stock_detection PASSED                 [ 60%]
+tests/test_analytics.py::test_empty_period_analytics PASSED              [  2%]
+tests/test_analytics.py::test_analytics_with_sales_data PASSED           [  4%]
+tests/test_auth.py::test_valid_admin_login PASSED                        [  6%]
+tests/test_auth.py::test_valid_cashier_login PASSED                      [  8%]
+tests/test_auth.py::test_invalid_login_wrong_password PASSED             [ 10%]
+tests/test_auth.py::test_inactive_account_rejected PASSED                [ 12%]
+tests/test_auth.py::test_logout PASSED                                   [ 14%]
+tests/test_billing.py::test_correct_total_calculation PASSED             [ 17%]
+tests/test_billing.py::test_calculation_with_discount PASSED             [ 19%]
+tests/test_billing.py::test_successful_checkout_and_stock_deduction PASSED [ 21%]
+tests/test_billing.py::test_insufficient_stock_rejection_and_rollback PASSED [ 23%]
+tests/test_billing.py::test_empty_cart_rejection PASSED                  [ 25%]
+tests/test_billing.py::test_invalid_discount_rejection PASSED            [ 27%]
+tests/test_blinkit_express.py::test_express_store_renders PASSED         [ 29%]
+tests/test_blinkit_express.py::test_express_checkout_success PASSED      [ 31%]
+tests/test_blinkit_express.py::test_express_checkout_empty_cart PASSED   [ 34%]
+tests/test_blinkit_express.py::test_express_track_order PASSED           [ 36%]
+tests/test_blinkit_express.py::test_picker_console_dispatch PASSED       [ 38%]
+tests/test_csv.py::test_sanitize_csv_cell PASSED                         [ 40%]
+tests/test_csv.py::test_valid_csv_import PASSED                          [ 42%]
+tests/test_csv.py::test_invalid_csv_rows_reported PASSED                 [ 44%]
+tests/test_csv.py::test_csv_export PASSED                                [ 46%]
+tests/test_indian_snacks.py::test_indian_snacks_catalog_coverage PASSED   [ 48%]
+tests/test_indian_snacks.py::test_indian_snacks_pos_search PASSED        [ 51%]
+tests/test_indian_snacks.py::test_indian_snacks_checkout_stock_deduction PASSED [ 53%]
+tests/test_indian_snacks.py::test_indian_snacks_openfoodfacts_linking PASSED [ 55%]
+tests/test_interactive_pie.py::test_dashboard_renders_pie_controls PASSED [ 57%]
+tests/test_interactive_pie.py::test_analytics_category_breakdown PASSED [ 59%]
+tests/test_inventory.py::test_low_stock_detection PASSED                 [ 61%]
 tests/test_inventory.py::test_expiry_alerts_detection PASSED             [ 63%]
-tests/test_inventory.py::test_stock_restocking_movement PASSED           [ 66%]
-tests/test_inventory.py::test_stock_adjustment_movement PASSED           [ 70%]
-tests/test_products.py::test_create_product_success PASSED               [ 73%]
-tests/test_products.py::test_reject_duplicate_sku PASSED                 [ 76%]
-tests/test_products.py::test_reject_negative_price PASSED                [ 80%]
-tests/test_products.py::test_reject_negative_stock PASSED                [ 83%]
-tests/test_security.py::test_unauthenticated_redirect PASSED             [ 86%]
-tests/test_security.py::test_cashier_cannot_access_admin_dashboard PASSED [ 90%]
-tests/test_security.py::test_cashier_cannot_access_product_management PASSED [ 93%]
-tests/test_security.py::test_cashier_cannot_access_user_management PASSED [ 96%]
-tests/test_security.py::test_cashier_cannot_access_reports_or_exports PASSED [100%]
+tests/test_inventory.py::test_stock_restocking_movement PASSED           [ 65%]
+tests/test_inventory.py::test_stock_adjustment_movement PASSED           [ 68%]
+tests/test_products.py::test_create_product_success PASSED               [ 70%]
+tests/test_products.py::test_reject_duplicate_sku PASSED                 [ 72%]
+tests/test_products.py::test_reject_negative_price PASSED                [ 74%]
+tests/test_products.py::test_reject_negative_stock PASSED                [ 76%]
+tests/test_products.py::test_product_pagination_and_sorting PASSED       [ 78%]
+tests/test_products.py::test_product_status_toggle PASSED                [ 80%]
+tests/test_products.py::test_food_api_lookup PASSED                      [ 82%]
+tests/test_products.py::test_food_api_popular_items PASSED               [ 85%]
+tests/test_security.py::test_unauthenticated_redirect PASSED             [ 87%]
+tests/test_security.py::test_cashier_cannot_access_admin_dashboard PASSED [ 89%]
+tests/test_security.py::test_cashier_cannot_access_product_management PASSED [ 91%]
+tests/test_security.py::test_cashier_cannot_access_user_management PASSED [ 93%]
+tests/test_security.py::test_cashier_cannot_access_reports_or_exports PASSED [ 95%]
+tests/test_security.py::test_cashier_cannot_access_dark_store_hub PASSED [ 97%]
+tests/test_security.py::test_csrf_protection_on_state_modifications PASSED [100%]
 
-============================= 30 passed in 12.83s =============================
+============================= 47 passed in 23.39s =============================
 ```
 
 ---

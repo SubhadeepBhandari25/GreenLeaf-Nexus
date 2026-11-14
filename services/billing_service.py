@@ -108,9 +108,18 @@ class BillingService:
         if not cart_items_data or len(cart_items_data) == 0:
             raise ValueError("Cannot checkout with an empty cart.")
 
-        # Ensure payment method is valid
-        valid_methods = {"Cash", "Card", "UPI", "Store Credit", "Digital Wallet"}
-        if payment_method not in valid_methods:
+        # Ensure payment method is valid and normalized
+        pm_clean = payment_method.strip() if payment_method else "Cash"
+        pm_upper = pm_clean.upper()
+        if "UPI" in pm_upper:
+            payment_method = "UPI"
+        elif "CARD" in pm_upper or "CREDIT" in pm_upper or "DEBIT" in pm_upper:
+            payment_method = "Card"
+        elif "WALLET" in pm_upper:
+            payment_method = "Digital Wallet"
+        elif pm_clean in {"Cash", "Store Credit"}:
+            payment_method = pm_clean
+        else:
             payment_method = "Cash"
 
         try:

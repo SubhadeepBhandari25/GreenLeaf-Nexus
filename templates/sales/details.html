@@ -22,7 +22,7 @@
       <div class="list-group list-group-flush small mb-3">
         <div class="list-group-item px-0 d-flex justify-content-between">
           <span class="text-secondary">Cashier:</span>
-          <span class="fw-semibold">{{ sale.cashier.full_name }}</span>
+          <span class="fw-semibold">{{ sale.cashier.full_name if sale.cashier else 'System Cashier' }}</span>
         </div>
         {% if sale.customer_name %}
         <div class="list-group-item px-0 d-flex justify-content-between">

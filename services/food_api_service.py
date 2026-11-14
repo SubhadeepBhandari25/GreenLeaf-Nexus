@@ -1,5 +1,6 @@
 import urllib.request
 import urllib.parse
+import urllib.error
 import json
 from datetime import datetime
 
@@ -226,14 +227,35 @@ class FoodApiService:
     @classmethod
     def lookup_by_barcode(cls, barcode):
         """
-        Queries the live Open Food Facts REST API by barcode.
+        Queries the local database, pre-indexed catalog, or live Open Food Facts REST API by barcode.
         Returns normalized product metadata or None if not found.
         """
         cleaned_barcode = str(barcode).strip().replace(" ", "").replace("-", "")
         if not cleaned_barcode:
             return None
 
-        # Check pre-indexed cache first for instantaneous response
+        # Check local database first if inside Flask application context
+        try:
+            from flask import has_app_context
+            if has_app_context():
+                from models.product import Product
+                local_prod = Product.query.filter_by(barcode=cleaned_barcode).first()
+                if local_prod:
+                    return {
+                        "found": True,
+                        "barcode": local_prod.barcode,
+                        "name": local_prod.name,
+                        "brand": (local_prod.supplier.name if local_prod.supplier else "GreenLeaf Grocers"),
+                        "category": local_prod.category,
+                        "image_url": local_prod.image_path or "",
+                        "suggested_price": float(local_prod.unit_price),
+                        "cost_price": float(local_prod.cost_price),
+                        "source": "GreenLeaf Verified Catalog",
+                    }
+        except Exception:
+            pass
+
+        # Check pre-indexed cache for instantaneous response
         for item in cls.POPULAR_API_ITEMS:
             if item["barcode"] == cleaned_barcode:
                 return {
@@ -261,7 +283,13 @@ class FoodApiService:
                     return None
 
                 p = data["product"]
-                name = p.get("product_name") or p.get("product_name_en") or p.get("generic_name") or "Unnamed Product"
+                name = (
+                    p.get("product_name")
+                    or p.get("product_name_en")
+                    or p.get("product_name_hi")
+                    or p.get("generic_name")
+                    or "Unnamed Product"
+                )
                 brand = p.get("brands") or ""
                 image_url = p.get("image_front_url") or p.get("image_url") or ""
 
@@ -293,6 +321,9 @@ class FoodApiService:
                     "source": "Open Food Facts Live API",
                 }
 
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as net_err:
+            print(f"Open Food Facts network/API lookup error for barcode {cleaned_barcode}: {net_err}")
+            return None
         except Exception as e:
             print(f"Open Food Facts lookup error for barcode {cleaned_barcode}: {e}")
             return None

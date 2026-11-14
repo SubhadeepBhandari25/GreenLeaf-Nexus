@@ -212,15 +212,15 @@
     <div class="col-12 col-md-5">
       <div class="d-flex align-items-center gap-2 mb-1">
         <img src="{{ url_for('static', filename='img/greenleaf-nexus-logo.png') }}" alt="GreenLeaf Nexus Logo" style="width: 32px; height: 32px; object-fit: contain; border-radius: 8px; background: #ffffff; padding: 2px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-        <span class="blinkit-pulse-badge">
-          <i class="bi bi-lightning-charge-fill"></i> 10 MINS DELIVERY
+        <span class="blinkit-pulse-badge" id="activeStoreBadge">
+          <i class="bi bi-lightning-charge-fill"></i> {{ active_store.sla_mins }} MINS DELIVERY
         </span>
-        <span class="badge bg-white text-dark small" style="font-size: 0.72rem;">Dark Store #04 Online</span>
+        <span class="badge bg-white text-dark small" id="activeStoreNameBadge" style="font-size: 0.72rem;">{{ active_store.id }} Online</span>
       </div>
       <div class="d-flex align-items-center gap-1 text-white-50 small">
         <i class="bi bi-geo-alt-fill text-warning"></i>
         <span class="text-white fw-semibold">Delivering to:</span>
-        <span class="text-truncate text-white" id="activeDeliveryAddress">Indiranagar 100ft Rd, Bengaluru • Home</span>
+        <span class="text-truncate text-white" id="activeDeliveryAddress">{{ active_store.area }} • Home</span>
         <button class="btn btn-link text-warning p-0 text-decoration-none small ms-1" data-bs-toggle="modal" data-bs-target="#addressModal">
           <u>Change</u>
         </button>
@@ -501,24 +501,24 @@
       <div class="modal-body">
         <div class="list-group list-group-radio">
           <label class="list-group-item d-flex gap-3 p-3">
-            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Indiranagar 100ft Rd, Bengaluru • Home" checked>
+            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Indiranagar 100ft Rd, Bengaluru • Home" data-store-id="DS-04" data-store-name="GreenLeaf Indiranagar Dark Store #04" data-sla="10" {% if active_store.id == 'DS-04' %}checked{% endif %}>
             <div>
-              <strong class="d-block">Home</strong>
-              <small class="text-muted">Flat 402, Green Glen Layout, Indiranagar, Bengaluru - 560038</small>
+              <strong class="d-block">Indiranagar (Home)</strong>
+              <small class="text-muted">Flat 402, Green Glen Layout, Indiranagar, Bengaluru • 10-Min Dark Store #04</small>
             </div>
           </label>
           <label class="list-group-item d-flex gap-3 p-3">
-            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Koramangala 4th Block, Bengaluru • Office">
+            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Koramangala 4th Block, Bengaluru • Office" data-store-id="DS-07" data-store-name="GreenLeaf Koramangala Hub #07" data-sla="12" {% if active_store.id == 'DS-07' %}checked{% endif %}>
             <div>
-              <strong class="d-block">Office</strong>
-              <small class="text-muted">Tech Park Tower B, 3rd Floor, Koramangala, Bengaluru - 560034</small>
+              <strong class="d-block">Koramangala 4th Block (Office)</strong>
+              <small class="text-muted">Tech Park Tower B, 3rd Floor, Koramangala, Bengaluru • 12-Min Dark Store #07</small>
             </div>
           </label>
           <label class="list-group-item d-flex gap-3 p-3">
-            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="Whitefield ITPL Main Rd, Bengaluru • Other">
+            <input class="form-check-input flex-shrink-0" type="radio" name="addressOpt" value="ITPL Main Road, Whitefield, Bengaluru • Tech Hub" data-store-id="DS-12" data-store-name="GreenLeaf Whitefield Express #12" data-sla="15" {% if active_store.id == 'DS-12' %}checked{% endif %}>
             <div>
-              <strong class="d-block">GreenLeaf Dark Store Pickup Hub #04</strong>
-              <small class="text-muted">Direct Express Counter Pickup (Zero Delivery Fee)</small>
+              <strong class="d-block">Whitefield (Tech Hub)</strong>
+              <small class="text-muted">Prestige Shantiniketan, ITPL Main Road, Whitefield • 15-Min Dark Store #12</small>
             </div>
           </label>
         </div>
@@ -677,11 +677,25 @@
     }
   }
 
+  let currentStoreId = '{{ active_store.id }}';
+
   function applySelectedAddress() {
     const selected = document.querySelector('input[name="addressOpt"]:checked');
     if (selected) {
       document.getElementById('activeDeliveryAddress').textContent = selected.value;
       document.getElementById('cartAddressText').textContent = selected.value;
+      if (selected.dataset.storeId) {
+        currentStoreId = selected.dataset.storeId;
+        const sla = selected.dataset.sla || '10';
+        const storeBadge = document.getElementById('activeStoreBadge');
+        if (storeBadge) {
+          storeBadge.innerHTML = `<i class="bi bi-lightning-charge-fill"></i> ${sla} MINS DELIVERY`;
+        }
+        const nameBadge = document.getElementById('activeStoreNameBadge');
+        if (nameBadge) {
+          nameBadge.textContent = `${currentStoreId} Online`;
+        }
+      }
     }
   }
 
@@ -771,7 +785,8 @@
       address: address,
       customer_name: 'Valued Shopper',
       customer_phone: '9845012345',
-      payment_method: 'UPI Instant',
+      payment_method: 'UPI',
+      store_id: currentStoreId,
       tip_amount: tipAmount
     };
 

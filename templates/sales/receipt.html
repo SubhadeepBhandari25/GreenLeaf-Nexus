@@ -126,7 +126,7 @@
     </div>
     <div class="d-flex justify-content-between">
       <span>CASHIER:</span>
-      <span>{{ sale.cashier.full_name }}</span>
+      <span>{{ sale.cashier.full_name if sale.cashier else 'STAFF' }}</span>
     </div>
     {% if sale.customer_name %}
     <div class="d-flex justify-content-between">

@@ -102,14 +102,32 @@
 </div>
 
 <!-- Picker Queue Section -->
-<div class="d-flex align-items-center justify-content-between mb-3">
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
   <div>
     <h4 class="fs-5 fw-bold mb-0">Incoming Orders Packing Queue</h4>
     <p class="text-muted small mb-0">Pick items according to shelf aisle coordinates and scan to pack</p>
   </div>
-  <a href="{{ url_for('express.store') }}" class="btn btn-sm btn-outline-green">
-    <i class="bi bi-cart3 me-1"></i> Open Storefront
-  </a>
+  <div class="d-flex align-items-center gap-2">
+    {% if dark_stores %}
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="bi bi-building me-1"></i> {{ dark_store.id }}: {{ dark_store.area.split(',')[0] }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+        {% for ds in dark_stores %}
+        <li>
+          <a class="dropdown-item {% if ds.id == dark_store.id %}active{% endif %}" href="{{ url_for('express.picker_console', store_id=ds.id) }}">
+            <strong>{{ ds.name }}</strong><br><small class="text-muted">{{ ds.area }} • {{ ds.sla_mins }}m SLA</small>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <a href="{{ url_for('express.store', store_id=dark_store.id) }}" class="btn btn-sm btn-outline-green">
+      <i class="bi bi-cart3 me-1"></i> Open Storefront
+    </a>
+  </div>
 </div>
 
 <!-- Order Cards Grid -->

@@ -64,9 +64,9 @@ def index():
         sort_column = Product.expiry_date
 
     if order == "desc":
-        query = query.order_by(sort_column.desc().nullslast())
+        query = query.order_by(sort_column.desc().nulls_last())
     else:
-        query = query.order_by(sort_column.asc().nullsfirst())
+        query = query.order_by(sort_column.asc().nulls_first())
 
     pagination = query.paginate(page=page, per_page=15, error_out=False)
     products = pagination.items
@@ -408,7 +408,7 @@ def import_food_item():
     cat_prefix = category[:3].upper() if len(category) >= 3 else "GEN"
     sku = f"OFF-{cat_prefix}-{barcode[-6:] if len(barcode) >= 6 else barcode}"
     if Product.query.filter_by(sku=sku).first():
-        sku = f"OFF-{cat_prefix}-{barcode[-4:]}-{int(datetime.utcnow().timestamp()) % 1000}"
+        sku = f"OFF-{cat_prefix}-{barcode[-4:]}-{int(datetime.now().timestamp()) % 1000}"
 
     first_supplier = Supplier.query.first()
     supplier_id = first_supplier.supplier_id if first_supplier else None

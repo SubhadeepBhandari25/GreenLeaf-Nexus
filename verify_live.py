@@ -160,7 +160,47 @@ def run_verification():
         assert b'Open Food Facts Global Product Database' in resp.data
         print(" [x] Product management table renders authentic item thumbnails: OK (200)")
 
-        print("\nAll 17 live system and real API database integration checks passed flawlessly!")
+        # 18. Express 10-Minute Hyperlocal Storefront
+        resp = client.get("/express/")
+        assert resp.status_code == 200, f"Express store failed: {resp.status_code}"
+        assert b"GreenLeaf Instant" in resp.data
+        assert b"10 MINS DELIVERY" in resp.data
+        print(" [x] Express 10-min storefront: OK (200)")
+
+        # 19. Dark Store Fulfillment & Packing Console
+        resp = client.get("/express/picker")
+        assert resp.status_code == 200, f"Picker console failed: {resp.status_code}"
+        assert b"Dark Store Fulfillment" in resp.data
+        print(" [x] Dark Store fulfillment & packing console: OK (200)")
+
+        # 20. Live Express Order Tracking
+        resp = client.get(f"/express/track/{inv_no}")
+        assert resp.status_code == 200, f"Track order failed: {resp.status_code}"
+        assert b"Express Order Tracking" in resp.data
+        assert inv_no.encode("utf-8") in resp.data
+        print(f" [x] Live GPS & SLA express order tracking: OK (200) - #{inv_no}")
+
+        # 21. Live Express 10-min Checkout API
+        resp = client.post(
+            "/express/checkout",
+            json={
+                "items": [{"product_id": prod_id, "quantity": 1}],
+                "customer_name": "Express Quick Shopper",
+                "customer_phone": "9845012345",
+                "address": "Indiranagar 100ft Rd, Bengaluru",
+                "payment_method": "UPI",
+                "store_id": "DS-04",
+                "tip_amount": 20.0,
+            },
+            headers={"X-CSRFToken": csrf_token},
+        )
+        assert resp.status_code == 200, f"Express checkout failed: {resp.text}"
+        exp_data = resp.get_json()
+        assert exp_data["success"] is True
+        exp_inv = exp_data["invoice_number"]
+        print(f" [x] Live 10-minute Express checkout: OK (200) - Invoice #{exp_inv}, Store: {exp_data['dark_store']['name']}")
+
+        print("\nAll 21 live system, real API database, and Quick-Commerce express fulfillment checks passed flawlessly!")
 
 if __name__ == "__main__":
     run_verification()
